@@ -13,9 +13,9 @@ Below you will find the artifacts we have opened in this repository:
 | Folder | Description |
 | ------ | ----------- |
 | [`src/behavior/`](src/behavior/) | EQL based malicious behavior rules, as TOML (the source of the rules library) |
-| [`rules/`](rules/) | The behavior rules as a rules library: one YAML file per rule, generated from `src/behavior/` |
 | [`src/yara/`](src/yara) | Yara rules for malware protection |
 | [`src/ransomware/`](src/ransomware/) | Elastic ransomware protection artifact  |
+| [`rules/`](rules/) | The behavior rules as a rules library: one YAML file per rule, generated from `src/behavior/` |
 | [`scripts/`](scripts/) | Tooling that builds `rules/` from `src/behavior/` |
 
 # Rules library
