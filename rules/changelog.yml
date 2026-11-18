@@ -1,0 +1,281 @@
+# newer versions go on top
+- version: 1.0.129
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/141
+- version: 1.0.128
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/140
+- version: 1.0.127
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/139
+- version: 1.0.126
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/134
+- version: 1.0.125
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/133
+- version: 1.0.124
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/128
+- version: 1.0.123
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/e73631a985170586e9b71bf9a4fefd37e7193438
+- version: 1.0.122
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/123
+- version: 1.0.121
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/121
+- version: 1.0.120
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/003fb7eee730089f7d8beee5cee631f2ee6409ef
+- version: 1.0.119
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/5e8915fcac1b0b308f28089964b53a616ed7665b
+- version: 1.0.118
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/114
+- version: 1.0.117
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/2de99aad256bc496b722523c6fc7f0916f676684
+- version: 1.0.116
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/111
+- version: 1.0.115
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/109
+- version: 1.0.144
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/103
+- version: 1.0.113
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/102
+- version: 1.0.112
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/7cfeb786097607e99c14805c236b30af87200a63
+- version: 1.0.111
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/99
+- version: 1.0.110
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/97
+- version: 1.0.109
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/96
+- version: 1.0.108
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/95
+- version: 1.0.105
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/93
+- version: 1.0.104
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/91
+- version: 1.0.103
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/90
+- version: 1.0.102
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/89
+- version: 1.0.101
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/88
+- version: 1.0.100
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/87
+- version: 1.0.99
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/85
+- version: 1.0.98
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/b012615875a25799dd01294b482b0cf58c8aeef6
+- version: 1.0.92
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/76
+- version: 1.0.91
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/01380122829afa16eeab1bf5e28ef2087ee76ae7
+- version: 1.0.89
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/72
+- version: 1.0.88
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/71
+- version: 1.0.87
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/70
+- version: 1.0.86
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/67
+- version: 1.0.85
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/commit/deabde00b015937963e08738c64eb901536e326d
+- version: 1.0.84
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/62
+- version: 1.0.83
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/61
+- version: 1.0.82
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/59
+- version: 1.0.81
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/57
+- version: 1.0.80
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/56
+- version: 1.0.78
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/54
+- version: 1.0.77
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/52
+- version: 1.0.76
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/51
+- version: 1.0.75
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/49
+- version: 1.0.66
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/35
+- version: 1.0.65
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/31
+- version: 1.0.64
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/30
+- version: 1.0.63
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/28
+- version: 1.0.62
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/27
+- version: 1.0.61
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/26
+- version: 1.0.60
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/25
+- version: 1.0.59
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/24
+- version: 1.0.58
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/22
+- version: 1.0.56
+  changes:
+    - description: Release behavior rules update
+      type: enhancement
+      link: https://github.com/elastic/protections-artifacts/pull/17

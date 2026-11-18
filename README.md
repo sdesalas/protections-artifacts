@@ -25,6 +25,11 @@ library of prebuilt rules.
 
 ```
 rules/
+  manifest.yml                     package manifest (name, version, kibana.version condition)
+  changelog.yml                    one entry per release, linked to its pull request or commit
+  NOTICE.txt                       notice shipped with the package
+  README.md                        the package description
+  endpoint-logo-color-32px.svg     the package icon (the manifest's `icons`)
   windows/<rule file name>.yml
   linux/<rule file name>.yml
   macos/<rule file name>.yml
@@ -33,13 +38,13 @@ scripts/
   convert_rules.py                 rebuilds rules/ from src/behavior/rules/
 ```
 
-- Every folder under `rules/` holds rule files, and only those. The folder is the one the rule has in `src/behavior/rules/`.
+- Every folder under `rules/` holds rule files, and only those. The folder is the one the rule has in `src/behavior/rules/`. The package files stay directly in `rules/`.
 - Each file holds one rule as `{ id, type: "security-rule", attributes }`. `id` is `<rule_id>_<version>`.
   `attributes` has the fields of the TOML file: the `[rule]` table with `id` renamed to `rule_id`, plus `actions`,
   `threat` and `internal`.
 - Keys keep the order of the TOML file, multi-line fields (`description`, `query`) are literal blocks, and the data is identical to the
   TOML when parsed.
-- `rules/` is generated. Edit the TOML under `src/behavior/` and rebuild.
+- The rule files in `rules/` are generated. Edit the TOML under `src/behavior/` and rebuild. The package files are edited by hand, and the manifest `version` is the latest release in `changelog.yml`.
 
 ```sh
 python3 scripts/convert_rules.py

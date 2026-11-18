@@ -1,0 +1,24 @@
+categories:
+  - security
+conditions:
+  elastic:
+    capabilities:
+      - security
+    subscription: basic
+  kibana:
+    version: ^9.6.0
+description: Elastic Defend malicious behavior protection rules
+format_version: 3.0.0
+icons:
+  - size: 32x32
+    src: /endpoint-logo-color-32px.svg
+    type: image/svg+xml
+name: endpoint_behavior_rules
+owner:
+  github: elastic/protections-artifacts
+  type: elastic
+source:
+  license: Elastic-2.0
+title: Elastic Defend Behavior Protection Rules
+type: integration
+version: 1.0.129
