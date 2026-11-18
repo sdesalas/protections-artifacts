@@ -1,0 +1,38 @@
+id: "232c03d2-ff5d-4ec5-88b5-5926dc491e91_1.0.6"
+type: security-rule
+attributes:
+  description: |
+    Detects the execution of the screen binary to execute a command or commands via a shell. Threat actors have used this
+    technique via interactive sessions to execute commands on the host and avoid standard detections.
+  rule_id: "232c03d2-ff5d-4ec5-88b5-5926dc491e91"
+  license: Elastic License v2
+  name: Command Execution via Screen Session
+  os_list:
+    - macos
+  version: "1.0.6"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and \n process.name == \"screen\" and\n process.args in (\"/bin/bash\", \"/usr/bin/bash\", \"/bin/sh\", \"/usr/bin/sh\", \"/bin/zsh\", \"/usr/bin/zsh\", \"bash\", \"sh\", \"zsh\") and\n process.args == \"-c\" and\n not process.Ext.effective_parent.executable == \"/Applications/kitty.app/Contents/MacOS/kitty\"\n"
+  min_endpoint_version: "8.7.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.7.0"

@@ -1,0 +1,40 @@
+id: fce1ba4a-596c-445c-938d-3ffd73152bf2_1.0.12
+type: security-rule
+attributes:
+  description: |
+    Detects the abnormal spawning of curl or nscurl by a shell script within an applications directory structure. Threat
+    actors have executed and abused shell scripts within a benign applications directory structures in order to evade
+    detection and download a second stage payload. This specific activity has been observed when the shell script creates a
+    new shell child process ,via a fork, which is then used to execute curl or nscurl. The use of shell scripts within a
+    macOS application to execute curl is highly abnormal espcially in this specific manner.
+  rule_id: fce1ba4a-596c-445c-938d-3ffd73152bf2
+  license: Elastic License v2
+  name: Curl Execution via Application Shell Script
+  os_list:
+    - macos
+  reference:
+    - "https://www.sentinelone.com/blog/from-the-front-lines-new-macos-covid-malware-masquerades-as-apple-wears-face-of-apt/"
+    - "https://github.com/D00MFist/Mystikal/blob/main/Modules/DMG.py"
+  version: "1.0.12"
+  query: "sequence by process.parent.entity_id with maxspan=30s\n[process where event.type == \"start\" and event.action == \"fork\" and process.name like~ (\"bash\", \"sh\", \"zsh\", \"tclsh*\") and\n  process.args_count == 2 and process.args like~ (\"/Applications/*\", \"/Volumes/*\", \"/Users/*/Applications/*\") and \n  process.parent.name like~ (\"bash\", \"sh\", \"zsh\", \"tclsh*\")]\n[process where event.type == \"start\" and event.action == \"exec\" and process.name in (\"curl\", \"nscurl\") and\n  process.args in (\"-o\", \"--output\", \"-O\", \"--remote-name\") and\n  not process.args like~\n              (\"https://github.com/*\",\n               \"http://localhost:*\",\n               \"https://localhost:*\",\n               \"https://download.elastic.co/cloud/elastic-cloud-enterprise.sh\") and\n  not process.args == \"-X\" and\n  not process.args == \"-H\" and\n  not process.args == \"-d\" and\n  not Effective_process.executable like \"/Users/*/Library/Application Support/Claude/claude-code/*/claude.app/Contents/MacOS/claude\"]\n"
+  min_endpoint_version: "8.11.1"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.11.1"

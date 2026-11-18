@@ -1,0 +1,35 @@
+id: a4862afb-1292-4f65-a15f-8d6a8019b5e2_1.0.31
+type: security-rule
+attributes:
+  description: |
+    Identifies instances of the Control Panel application running with suspicious keywords or paths in the process command
+    line value. Adversaries may abuse Control.exe to proxy execution of malicious code.
+  rule_id: a4862afb-1292-4f65-a15f-8d6a8019b5e2
+  license: Elastic License v2
+  name: Control Panel Process with Unusual Arguments
+  os_list:
+    - windows
+  version: "1.0.31"
+  query: "process where event.action == \"start\" and\n(\n\n (process.executable : (\"?:\\\\Windows\\\\SysWOW64\\\\control.exe\", \"?:\\\\Windows\\\\System32\\\\control.exe\") and\n  process.command_line :\n          (\"*.jpg*\",\n           \"*.png*\",\n           \"*.gif*\",\n           \"*.bmp*\",\n           \"*.jpeg*\",\n           \"*.TIFF*\",\n           \"*.inf*\",\n           \"*.dat*\",\n           \"*.cpl:../*\",\n           \"*..\\\\..\\\\*\",\n           \"*/AppData/Local/*\",\n           \"*:\\\\Users\\\\Public\\\\*\",\n           \"*\\\\AppData\\\\Local\\\\*\") and \n           \n  /* excluding FPs where /name arg is used to specify a control by name */\n  not (process.args : \"/name\" and process.args_count >= 2) and\n  /* excluding system IL to minimize risk of killing system critical execution */\n  not process.Ext.token.integrity_level_name == \"system\") or\n\n  (process.name : \"rundll32.exe\" and process.command_line : \"*shell32*#*44*\" and\n   not (process.parent.name : \"rundll32.exe\" and process.parent.command_line : \"*Shell32*Control_RunDLL*\")) or\n\n  (process.name : \"rundll32.exe\" and process.command_line : \"*shell32*#*44*\" and\n   not process.command_line : \"*.cpl*\" and process.args_count >= 3) or\n\n  (process.name : \"rundll32.exe\" and process.command_line : \"*shell32*#*44*\" and process.args_count >= 3 and\n   (process.command_line : (\"*/AppData/Local/*\", \"*:\\\\Users\\\\Public\\\\*\", \"*\\\\AppData\\\\Local\\\\*\", \"*:\\\\ProgramData\\\\*\") or\n    process.working_directory : (\"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\*\", \"?:\\\\Users\\\\Public\\\\*\")))\n) and\nnot (process.name : \"rundll32.exe\" and process.args : (\"OpenAs_RunDLL\", \"ShellExec_RunDLL\"))\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.002
+              name: Control Panel
+              reference: "https://attack.mitre.org/techniques/T1218/002/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,38 @@
+id: c5e0a2f9-7d1b-3f6c-e4a8-0b9d5e2c1a3f_1.0.1
+type: security-rule
+attributes:
+  description: |
+    Detects potential stack spoofing via ROP gadget in the context of memory or execution API calls. Flags invocations where
+    the call stack exhibits patterns associated with return-oriented programming used to alter call stack appearance.
+  rule_id: c5e0a2f9-7d1b-3f6c-e4a8-0b9d5e2c1a3f
+  license: Elastic License v2
+  name: Stack Spoofing via ROP Gadget for Memory API
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/doubling-down-etw-callstacks"
+    - "https://attack.mitre.org/techniques/T1036/"
+  version: "1.0.1"
+  query: "api where process.Ext.token.integrity_level_name != \"low\" and\n  process.Ext.api.name in (\n    \"VirtualProtect\",\n    \"VirtualAlloc\",\n    \"VirtualProtectEx\",\n    \"VirtualAllocEx\",\n    \"WriteProcessMemory\",\n    \"ReadProcessMemory\",\n    \"MapViewOfFile\",\n    \"MapViewOfFile2\",\n    \"SetThreadContext\",\n    \"SuspendThread\"\n  ) and\n  process.thread.Ext.call_stack_summary in (\n    \"ntdll.dll|kernelbase.dll|dfshim.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|dfshim.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|archiveint.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|archiveint.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|authfwsnapin.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|authfwsnapin.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|fluenceds.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|fluenceds.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|hostnetsvc.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|hostnetsvc.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|bingmaps.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|bingmaps.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|maprouter.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|maprouter.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|mshtml.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|mshtml.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|printui.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|printui.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|shell32.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|shell32.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|urlmon.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|urlmon.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|winipcsecproc.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|winipcsecproc.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|kernelbase.dll|windows.networking.backgroundtransfer.contentprefetchtask.dll|kernel32.dll|ntdll.dll\",\n    \"ntdll.dll|windows.networking.backgroundtransfer.contentprefetchtask.dll|kernel32.dll|ntdll.dll\"\n  ) and\n   not (process.Ext.api.name == \"VirtualProtect\" and\n        _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info like (\"c:\\\\windows\\\\system32\\\\ntdll.dll!LdrLoadDll*\", \"c:\\\\windows\\\\system32\\\\kernelbase.dll!LoadLibrary*\"))) and \n   not (process.Ext.api.name == \"SuspendThread\" and process.thread.Ext.call_stack_summary == \"ntdll.dll|shell32.dll|kernel32.dll|ntdll.dll\")\n"
+  min_endpoint_version: "8.10.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

@@ -1,0 +1,43 @@
+id: "46de65b8-b873-4ae7-988d-12dcdc6fa605_1.0.36"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a process running as SYSTEM and impersonating a Windows core binary privileges. Adversaries
+    may create a new process with a different token to escalate privileges and bypass access controls.
+  rule_id: "46de65b8-b873-4ae7-988d-12dcdc6fa605"
+  license: Elastic License v2
+  name: Potential Privilege Escalation via Token Impersonation
+  os_list:
+    - windows
+  reference:
+    - "https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithtokenw"
+  version: "1.0.36"
+  query: "process where event.action == \"start\" and process.parent.executable != null and\n\n /* process creation via seclogon */\n process.parent.Ext.real.pid > 0 and\n\n /* CreateProcessWithToken and effective parent is a privileged MS native binary used as a target for token theft */\n user.id : \"S-1-5-18\"  and\n process.Ext.effective_parent.executable :\n                (\"?:\\\\Windows\\\\system32\\\\*.exe\",\n                 \"?:\\\\Windows\\\\SysWOW64\\\\*.exe\",\n                 \"?:\\\\Windows\\\\Microsoft.Net\\\\*.exe\",\n                 \"?:\\\\Windows\\\\servicing\\\\TrustedInstaller.exe\",\n                 \"?:\\\\Program Files\\\\Microsoft\\\\*.exe\",\n                 \"?:\\\\Program Files (x86)\\\\Microsoft\\\\*.exe\") and \n                 \n not (process.Ext.effective_parent.executable : \"?:\\\\Windows\\\\System32\\\\Utilman.exe\" and \n      process.parent.executable : \"?:\\\\Windows\\\\System32\\\\Utilman.exe\" and process.parent.args : \"/debug\") and \n      \n not (process.executable : (\"?:\\\\Windows\\\\System32\\\\WerFault.exe\", \n                            \"?:\\\\Windows\\\\SysWOW64\\\\WerFault.exe\", \n                            \"?:\\\\Windows\\\\System32\\\\WerFaultSecure.exe\",\n                            \"?:\\\\Windows\\\\SysWOW64\\\\WerFaultSecure.exe\") and process.args : \"-u\" and process.args : \"-p\") and \n                            \n not process.parent.executable : \"?:\\\\Windows\\\\System32\\\\AtBroker.exe\" and\n not (process.executable : \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\securityhealthsetup.exe\" and \n      process.parent.executable : \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\securityhealthsetup.exe\") and \n not (process.code_signature.subject_name :\n                            (\"philandro Software GmbH\", \"Freedom Scientific Inc.\", \"TeamViewer Germany GmbH\",\n                             \"Projector.is, Inc.\", \"TeamViewer GmbH\", \"Cisco WebEx LLC\", \"TeamViewer\", \"PURSLANE\",\n                             \"Tranquil I.T. Systems\", \"VOICEFIVE, INC.\", \"AnyDesk Software GmbH\", \"Zhou Huabing\",\n                             \"Remote Utilities LLC\", \"Bayside Computer Systems Inc\") and\n      process.code_signature.trusted == true) and\n not (process.executable : \"?:\\\\windows\\\\system32\\\\WerMgr.exe\" and process.args : \"-datacollectorcreate\") and\n not process.executable : \"?:\\\\Program Files (x86)\\\\Dolphin\\\\SnovaMag*\\\\dol_logon.exe\" and\n not (process.executable : \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\securityhealthsetup.exe\" and\n      process.Ext.effective_parent.executable : \"?:\\\\Windows\\\\servicing\\\\TrustedInstaller.exe\" and\n      process.code_signature.subject_name : \"Microsoft Windows Publisher\" and process.code_signature.trusted == true) and\n /* ansible exec_wrapper */\n not (process.name : \"powershell.exe\" and\n      process.command_line :\n              (\"*AkAGUAeABlAGMAXwB3AHIAYQBwAHAAZQByAF8AcwB0AHIALgBTAHAAbABpAHQAKABAACgAIgBgADAAYAAwAGAAMABgADAAIgApA*\",\n               \"*ABzAHAAbABpAHQAXwBwAGEAcgB0AHMAIAA9ACAAJABlAHgAZQBjAF8AdwByAGEAcABwAGUAcgBfAHMAdAByAC4AUwBwAGwAaQB0*\",\n               \"*CgAgACAAIAAgAHQAcgBhAHAAIAB7AAoAIAAgACAAIAAgACAAIAAgACQAdwByAGEAcABwAGUAcgBfAHAAYQB0AGgAIAA9ACAAIgA*\", \n               \"*JABlAHgAZQBjAF8AdwByAGEAcABwAGUAcgBfAHMAdAByACAAPQAgAFsAUwB5AHMAdABlAG0ALgBDAG8AbgBzAG8AbABlAF0*\")) and\n not (process.name : \"powershell.exe\" and\n      process.parent.executable : \"C:\\\\Windows\\\\system32\\\\wsmprovhost.exe\" and\n      process.command_line : \"*CQAcwBwAGwAaQB0AF8AcABhAHIAdABzACAAPQAgACQAZQB3AC4AUwBwAGwAaQB0ACgAQAAoACIAYAAwAGAAMABgADAAYAAwACIAKQAsACAAMgAsA*\") and\n not (process.executable : \"?:\\\\WINDOWS\\\\system32\\\\osk.exe\" and\n      process.parent.executable : (\"?:\\\\WINDOWS\\\\System32\\\\WinLogon.exe\", \"?:\\\\Windows\\\\System32\\\\LogonUI.exe\")) and\n not process.hash.sha256 : (\"1e07a7a91451303d5cdac0a1673d581f5f7198fcc08fc79e4332aba6400f55a8\",\n                            \"f3607f433952cb23d9eb0fc5e31fd0c4079cad3133dc79d149022900d208876c\") and\n not ((process.executable : \"C:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\SecurityHealthSetup.exe\" or process.pe.original_file_name == \"SecurityHealthSetup.exe\") and\n      process.Ext.effective_parent.executable : \"C:\\\\Windows\\\\servicing\\\\TrustedInstaller.exe\" and\n      process.code_signature.subject_name in (\"Microsoft Corporation\", \"Microsoft Windows\") and process.code_signature.trusted == true)\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1134
+          name: Access Token Manipulation
+          reference: "https://attack.mitre.org/techniques/T1134/"
+          subtechnique:
+            - id: T1134.001
+              name: Token Impersonation/Theft
+              reference: "https://attack.mitre.org/techniques/T1134/001/"
+            - id: T1134.002
+              name: Create Process with Token
+              reference: "https://attack.mitre.org/techniques/T1134/002/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.4.0"

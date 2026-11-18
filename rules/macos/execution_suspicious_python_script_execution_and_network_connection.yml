@@ -1,0 +1,44 @@
+id: cad8906b-156b-48c0-bda9-785ef3561442_1.0.11
+type: security-rule
+attributes:
+  description: |
+    Detects when Python is executed containing arguments containing suspicious file paths followed immediately by a Python
+    network connection. We have observed malware samples that drop and execute a Python script within a suspicious directory
+    in order to establish C2.
+  rule_id: cad8906b-156b-48c0-bda9-785ef3561442
+  license: Elastic License v2
+  name: Suspicious Python Script Execution and Network Connection
+  os_list:
+    - macos
+  version: "1.0.11"
+  query: "sequence by process.entity_id with maxspan=15s\n[process where event.type == \"start\" and event.action == \"exec\" and process.name like~ \"python*\" and process.args like~ \"python*\" and \n  process.args like (\"/Users/Shared/*\", \"/tmp/*\", \"/private/var/tmp/*\", \"/var/tmp/*\") and process.args_count <= 3 and \n  not (process.parent.name in (\"zsh\", \"bash\", \"sh\", \"fish\", \"tcsh\") and\n        process.parent.command_line in (\"-bash\", \"-zsh\", \"-sh\", \"-fish\", \"-tcsh\") and\n        process.parent.executable : (\"/bin/zsh\", \"/bin/bash\", \"/bin/sh\", \"/opt/homebrew/*\", \"/usr/local/*\") and\n        process.code_signature.trusted == true) and\n  not process.Ext.effective_parent.executable like (\n        \"/Applications/Visual Studio Code.app/*\",\n        \"/Applications/Cursor.app/*\",\n        \"/Applications/PyCharm.app/*\",\n        \"/Applications/PyCharm CE.app/*\",\n        \"/Applications/Windsurf.app/*\",\n        \"/Applications/Codex.app/*\",\n        \"/Applications/Emacs.app/*\",\n        \"/Applications/IntelliJ IDEA.app/*\",\n        \"/Users/*/Applications/IntelliJ IDEA.app/*\",\n        \"/Applications/Android Studio.app/*\",\n        \"/Applications/cmux.app/*\",\n        \"/Applications/ChatGPT.app/*\",\n        \"/Users/*/Library/Application Support/Claude/*\") and\n  not (process.parent.name in (\"zsh\", \"bash\", \"sh\") and process.parent.command_line : (\n    \"*/.claude/shell-snapshots/*\",\n    \"*/.codex/shell_snapshots/*\",\n    \"*/.cursor/shell-snapshots/*\"))]\n[network where event.type == \"start\" and\n   not destination.domain : (\"dl.google.com\", \"*.cloud.es.io\", \"*.elastic-cloud.com\", \"elastic.co\", \"www.elastic.co\") and\n   not cidrmatch(destination.ip, \n       \"240.0.0.0/4\", \"233.252.0.0/24\", \"224.0.0.0/4\", \"198.19.0.0/16\", \"192.18.0.0/15\", \n       \"192.0.0.0/24\", \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \n       \"192.0.2.0/24\", \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.168.0.0/16\", \"192.88.99.0/24\", \n       \"100.64.0.0/10\", \"192.175.48.0/24\", \"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\",\n       \"::1\", \"FE80::/10\", \"FF00::/8\")]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.006
+              name: Python
+              reference: "https://attack.mitre.org/techniques/T1059/006/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.16.0"

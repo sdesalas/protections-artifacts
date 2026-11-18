@@ -1,0 +1,43 @@
+id: "9c0a744f-d6f5-49d6-9c26-077ea8dd2b59_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempt to call VirtualProtect by Internet Explorer browser or from Jscript9 with unusual properties. This
+    may indicate an attempt to exploit a vulnerability for initial access and execution.
+  rule_id: "9c0a744f-d6f5-49d6-9c26-077ea8dd2b59"
+  license: Elastic License v2
+  name: Suspicious VirtualProtect via Jscript9 from Internet Explorer
+  os_list:
+    - windows
+  reference:
+    - "https://asec.ahnlab.com/en/83877/"
+    - "https://medium.com/s2wblog/unmasking-cve-2024-38178-the-silent-threat-of-windows-scripting-engine-91ad954dbf83"
+  version: "1.0.5"
+  query: "api where process.Ext.api.name == \"VirtualProtect\" and\n process.executable : (\"C:\\\\Program Files (x86)\\\\Internet Explorer\\\\iexplore.exe\", \"C:\\\\Program Files\\\\Internet Explorer\\\\iexplore.exe\") and \n (process.Ext.api.parameters.protection in (\"RWX\", \"R-X\") and process.Ext.api.parameters.protection_old == \"RW-\") and   \n (\n  process.thread.Ext.call_stack_summary like \"ntdll.dll|*kernelbase.dll|Unbacked|jscript9.dll|*\" or \n  process.thread.Ext.call_stack_final_user_module.name == \"jscript9.dll\"\n  ) and\n not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.protection_provenance : (\"Kernel\", \"Kernel|*\", \"snxhk.dll\")) and\n not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info:\n                   (\"c:\\\\windows\\\\sys?????\\\\rtworkq.dll!RtwqScheduleWorkItem*\",\n                    \"c:\\\\program files\\\\java\\\\jre8\\\\bin\\\\server\\\\jvm.dll*\",\n                    \"c:\\\\windows\\\\sys?????\\\\kernelbase.dll!LoadLibrary*\",\n                    \"c:\\\\windows\\\\sys?????\\\\ntdll.dll!LdrLoadDll*\")) and\n not process.thread.Ext.call_stack_final_user_module.protection_provenance like (\"Kernel\", \"Kernel|*\") and\n process.Ext.api.metadata.target_address_path != \"c:\\\\program files\\\\cerner\\\\ietools (64-bit)\\\\ietools.dll\" and\n not process.thread.Ext.call_stack_final_user_module.path like \n                                     (\"c:\\\\windows\\\\syswow64\\\\msvbvm??.dll\", \n                                      \"c:\\\\windows\\\\microsoft.net\\\\framework\\\\v*\\\\mscorwks.dll\", \n                                      \"c:\\\\windows\\\\syswow64\\\\mfcore.dll\") and\n not _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry, $entry.trusted == true and\n    $entry.subject_name in (\n      \"Microsoft Windows Hardware Compatibility Publisher\",\n      \"Microsoft Windows Software Compatibility Publisher\",\n      \"Avast Software s.r.o.\",\n      \"AVG Technologies USA, LLC\",\n      \"BeyondTrust Corporation\",\n      \"Bitdefender SRL\",\n      \"Cylance, Inc.\",\n      \"Carbon Black, Inc.\",\n      \"Check Point Software Technologies Ltd.\",\n      \"Cisco Systems, Inc.\",\n      \"ESET, spol. s r.o.\",\n      \"Ivanti, Inc.\",\n      \"FireEye, Inc.\",\n      \"Kaspersky Lab\",\n      \"Kaspersky Lab JSC\",\n      \"AO Kaspersky Lab\",\n      \"McAfee, Inc.\",\n      \"Mozilla Corporation\",\n      \"Palo Alto Networks\",\n      \"SentinelOne Inc.\",\n      \"Sophos Limited\",\n      \"Symantec Corporation\",\n      \"Trend Micro, Inc.\",\n      \"VMware, Inc.\",\n      \"WithSecure Oyj\",\n      \"Fortinet Technologies (Canada) ULC\",\n      \"Fortinet Inc\",\n      \"Sentinel Labs, Inc.\",\n      \"VIPRE Security (ThreatTrack Security, Inc.)\",\n      \"Adobe Inc.\",\n      \"Codejock Technologies, LLC\",\n      \"Intel Corporation\",\n      \"Intel(R) Software Development Products\",\n      \"Johannes Schindelin\", /* Git for Windows */\n      \"Mozilla Corporation\",\n      \"SAP SE\",\n      \"VisualSVN Software Ltd.\",\n      \"SAS Institute Inc.\",\n      \"combit Software GmbH\",\n      \"PC SOFT INFORMATIQUE\",\n      \"PC SOFT INFORMATIQUE SAS\",\n      \"Configura Sverige AB\",\n      \"MUSARUBRA US LLC\",\n      \"Trellix\"\n    )) and\n\n not _arraysearch(process.thread.Ext.call_stack, $entry,\n                   $entry.callsite_trailing_bytes : \"4c8b5424484883c460415941585a594883ec2041ff124883c420415a5d5b5e5f415f415e415d415cc30f1*\") and\n not process.thread.Ext.call_stack_summary like \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|jscript9.dll|jp2iexp.dll|*vaultcli.dll|*\"\n"
+  min_endpoint_version: "8.10.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1189
+          name: Drive-by Compromise
+          reference: "https://attack.mitre.org/techniques/T1189/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1203
+          name: Exploitation for Client Execution
+          reference: "https://attack.mitre.org/techniques/T1203/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.10.0"

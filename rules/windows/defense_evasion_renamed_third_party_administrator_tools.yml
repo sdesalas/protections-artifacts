@@ -1,0 +1,36 @@
+id: b707de5c-8e4d-4d2c-be22-b09a7e82b73f_1.0.33
+type: security-rule
+attributes:
+  description: Identifies third party administrative tools commonly used by adversaries but running with unexpected file names.
+  rule_id: b707de5c-8e4d-4d2c-be22-b09a7e82b73f
+  license: Elastic License v2
+  name: Renamed Third Party Administrator Tools
+  os_list:
+    - windows
+  version: "1.0.33"
+  query: "process where event.action == \"start\" and\n  (\n   (process.pe.original_file_name : \"procdump\" and \n    process.code_signature.subject_name == \"Microsoft Corporation\" and not process.name : \"*procdump*.exe\") or\n   (process.pe.original_file_name : \"psexec.c\" and process.code_signature.subject_name == \"Microsoft Corporation\" and not process.name : \"*psexec*.exe\") or\n   (process.pe.original_file_name : \"sdelete.exe\" and process.code_signature.subject_name == \"Microsoft Corporation\" and not process.name : \"*sdelete*\")\n  ) and\n  not process.executable :\n    (\"?:\\\\Windows\\\\System32\\\\*.exe\", \n\t \"?:\\\\Windows\\\\SysWOW64\\\\*.exe\", \n\t \"?:\\\\Program Files (x86)\\\\*.exe\", \n\t \"?:\\\\Program Files\\\\*.exe\")\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.003
+              name: Rename Legitimate Utilities
+              reference: "https://attack.mitre.org/techniques/T1036/003/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

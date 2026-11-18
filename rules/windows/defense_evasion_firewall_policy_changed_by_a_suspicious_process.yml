@@ -1,0 +1,39 @@
+id: bf072c39-90bc-4b1b-9c78-1d8a9bd6f0e1_1.0.7
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to modify the Windows Firewall Policy in order to permit an unsigned executable that was recently
+    introduced. Malicious software frequently employs such alterations during installation to ensure uninterrupted network
+    connectivity.
+  rule_id: bf072c39-90bc-4b1b-9c78-1d8a9bd6f0e1
+  license: Elastic License v2
+  name: Firewall Policy Changed by a Suspicious Process
+  os_list:
+    - windows
+  version: "1.0.7"
+  query: "sequence with maxspan=1m \n[process where event.action == \"start\" and \n(\n ((process.Ext.relative_file_creation_time <= 500 or process.Ext.relative_file_name_modify_time <= 500) and \n (process.code_signature.trusted == false or process.code_signature.exists == false) and \n  not process.code_signature.status : (\"errorExpired\", \"errorCode_endpoint*\") and\n  (process.executable : (\"?:\\\\Users\\\\*\", \"?:\\\\ProgramData\\\\*\", \"?:\\\\Windows\\\\Temp\\\\*\") or\n   process.executable regex~ \"\"\"c:\\\\windows\\\\[a-z0-9\\-\\_\\.]+\\.exe\"\"\")) or \n\n   process.executable : \"?:\\\\Windows\\\\Microsoft.NET\\\\*\" or \n\n   (process.code_signature.subject_name : \"NetSupport Ltd\" and process.Ext.relative_file_creation_time <= 500 and \n    not process.executable : (\"?:\\\\Program Files\\\\NetSupport*.exe\", \"?:\\\\Program Files (x86)\\\\NetSupport*.exe\"))\n ) and\n not process.hash.sha256 in (\"0f418b6eda02552ef104a836a8ba812ddcfae11506dc96cae71b719046cd749c\",\n                             \"4cdb4fd1bb7a23c802abb6b5c0a973679495154b17a2234ea19e11fd0c8a2b0a\",\n                             \"7d766d78c07024537114c7ddaec864810cac822719caf13ff738b52c2b663c75\",\n                             \"e3fb22644ccfe21f511848e516c172802b9b6513625af1e5877e9dd88e8fe477\") and\n not (process.executable : \"?:\\\\ProgramData\\\\checkmk\\\\agent\\\\bin\\\\cmk-agent-ctl.exe\" and\n      process.parent.executable : (\"?:\\\\Program Files\\\\checkmk\\\\service\\\\check_mk_agent.exe\",\n                                   \"?:\\\\Program Files (x86)\\\\checkmk\\\\service\\\\check_mk_agent.exe\")) and\nnot (process.code_signature.subject_name : \"Incredibuild Software ltd.\" and process.code_signature.trusted == true)\n] as event0 \n[registry where \n  registry.path : \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Services\\\\SharedAccess\\\\Parameters\\\\FirewallPolicy\\\\FirewallRules\\\\*\" and \n  registry.data.strings : \"*Allow*Public|*\" and stringcontains~(registry.data.strings, event0.process.executable)]\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

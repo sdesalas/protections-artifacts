@@ -1,0 +1,28 @@
+id: "3337a10c-e950-4827-a44e-96a688fba221_1.0.9"
+type: security-rule
+attributes:
+  description: |
+    Monitors for the execution of different processes that might be used by attackers for malicious intent. An alert from
+    this rule should be investigated further, as hack tools are commonly used by blue teamers and system administrators as
+    well.
+  rule_id: "3337a10c-e950-4827-a44e-96a688fba221"
+  license: Elastic License v2
+  name: Potential Linux Hack Tool Launched
+  os_list:
+    - linux
+  version: "1.0.9"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.name in~ (\n  // exploitation frameworks\n  \"crackmapexec\", \"msfconsole\", \"msfvenom\", \"sliver-client\", \"sliver-server\", \"havoc\",\n  // network scanners (nmap left out to reduce noise)\n  \"zenmap\", \"nuclei\", \"netdiscover\", \"legion\",\n  // web enumeration\n  \"gobuster\", \"dirbuster\", \"dirb\", \"wfuzz\", \"ffuf\", \"whatweb\", \"eyewitness\",\n  // web vulnerability scanning\n  \"wpscan\", \"joomscan\", \"droopescan\", \"nikto\", \n  // exploitation tools\n  \"sqlmap\", \"commix\", \"yersinia\",\n  // cracking and brute forcing\n  \"john\", \"hashcat\", \"ncrack\", \"cewl\", \"fcrackzip\", \"rainbowcrack\",\n  // host and network\n  \"linenum.sh\", \"linpeas.sh\", \"pspy32\", \"pspy32s\", \"pspy64\", \"pspy64s\", \"evil-winrm\",\n  \"linux-exploit-suggester-2.pl\", \"linux-exploit-suggester.sh\", \"panix.sh\"\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "7.15.0"

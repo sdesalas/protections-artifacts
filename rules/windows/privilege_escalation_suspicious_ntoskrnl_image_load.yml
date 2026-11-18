@@ -1,0 +1,35 @@
+id: "13ec82e1-324f-4dcf-b58d-cac18faead77_1.0.4"
+type: security-rule
+attributes:
+  description: |
+    Identifies an unsigned process loading the ntoskrnl image. Some exploits map the Windows kernel file in memory to
+    calculate the offset for certain structures and objects needed for exploitation that may vary per target Operating
+    System.
+  rule_id: "13ec82e1-324f-4dcf-b58d-cac18faead77"
+  license: Elastic License v2
+  name: Suspicious NtOSKrnl Image Load
+  os_list:
+    - windows
+  version: "1.0.4"
+  query: "library where (dll.name : \"ntoskrnl.exe\" or dll.pe.original_file_name : \"ntkrnlmp.exe\") and \n (process.code_signature.trusted == false or process.code_signature.exists == false) and \n process.thread.Ext.call_stack_summary : \"?*\" and \n not process.thread.Ext.call_stack_summary : \"*libfacter.so|x64-msvcrt-ruby*\" and \n not process.executable : \n             (\"?:\\\\Program Files\\\\Puppet Labs\\\\Puppet\\\\sys\\\\ruby\\\\bin\\\\ruby.exe\", \n              \"?:\\\\Program Files\\\\Puppet Labs\\\\Puppet\\\\puppet\\\\bin\\\\ruby.exe\", \n              \"?:\\\\Program Files\\\\Puppet Labs\\\\Puppet\\\\puppet\\\\bin\\\\facter.exe\",\n              \"?:\\\\Windows\\\\SystemApps\\\\MicrosoftWindows.Client.*\\\\SearchHost.exe\", \n              \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Programs\\\\STAR\\\\resources\\\\BISPrint\\\\pr.exe\")\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1068
+          name: Exploitation for Privilege Escalation
+          reference: "https://attack.mitre.org/techniques/T1068/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.7.0"

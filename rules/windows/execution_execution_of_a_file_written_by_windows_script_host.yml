@@ -1,0 +1,40 @@
+id: "49e47c2a-307f-4591-939a-dfdae6e5156c_1.0.38"
+type: security-rule
+attributes:
+  description: Identifies the execution of a file written or modified by Microsoft Windows Script Host processes (cscript or wscript).
+  rule_id: "49e47c2a-307f-4591-939a-dfdae6e5156c"
+  license: Elastic License v2
+  name: Execution of a File Written by Windows Script Host
+  os_list:
+    - windows
+  version: "1.0.38"
+  query: "sequence with maxspan=5m\n  [file where event.action != \"deletion\" and\n   process.name : (\"cscript.exe\", \"wscript.exe\") and\n   not file.path : (\"?:\\\\Program Files (x86)\\\\*.exe\", \"?:\\\\Program Files\\\\*.exe\")] by file.path\n  [process where event.action == \"start\" and\n   not process.Ext.token.integrity_level_name == \"system\" and\n   not process.parent.executable : \"?:\\\\Windows\\\\System32\\\\drvinst.exe\" and\n   not (process.code_signature.trusted == true and\n        process.code_signature.subject_name :\n                (\"Microsoft *\",\n                 \"ESET, spol. s r.o.\",\n                 \"VORTECH SOLUTIONS PTY LTD\",\n                 \"Western Union Holdings Inc.\",\n                 \"KOBIL Systems GmbH\")) and\n   not (process.pe.original_file_name : \"Packman.exe\" and process.args : \"checkCompileErrors=true\") and\n   not process.pe.original_file_name : (\"CCCLauncher.exe\", \"Bginfo.exe\") and\n   not process.executable : (\"?:\\\\Program Files (x86)\\\\*\", \"?:\\\\Program Files\\\\*\") and\n   not (process.pe.original_file_name == \"cognosrcp.exe\" and\n        process.code_signature.subject_name == \"IBM Canada Ltd.\" and process.code_signature.trusted == true) and\n   not (process.code_signature.subject_name : (\"The Qt Company Oy\", \"ci solution GmbH\", \"Spotify AB\", \"Nextech Systems, LLC\") and \n        process.code_signature.trusted == true) and\n   not process.hash.sha256 :\n                   (\"9c3b9f4d38e6c7a9614d99260078c8f05f8e187eb25a23f03ea53f0120179494\",\n                    \"6c6c55cc9411700ad806ca9b2894fd339bfef23e1f836611c1d617485c13d91f\",\n                    \"dd05bbbbb72b847b7e404a9011404ca058b9144b3a1648ce9cd4edd4868052dc\",\n                    \"ebdef325ca2c3c6ded43b1e85263746719c609a9f8a0f43927764d80e92a865a\")\n   ] by process.executable\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.005
+              name: Visual Basic
+              reference: "https://attack.mitre.org/techniques/T1059/005/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "7.15.0"

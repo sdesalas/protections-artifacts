@@ -1,0 +1,58 @@
+id: "3f18726c-4897-41dc-8426-15da95b8482f_1.0.27"
+type: security-rule
+attributes:
+  description: |
+    Detects the execution of the Nohup utility pointing to a suspicious or malicious executable path followed by pushing the
+    execution to the background using the "&". Threat actors will utilize the Nohup utility to execute their payloads in a
+    variety of ways but specifically within initial access installer scripts and shell profile persistence. This activity
+    should be considered highly abnormal or malicious.
+  rule_id: "3f18726c-4897-41dc-8426-15da95b8482f"
+  license: Elastic License v2
+  name: Nohup Execution followed by Outbound Network Connection
+  os_list:
+    - macos
+  reference:
+    - "https://objective-see.org/blog/blog_0x71.html"
+  version: "1.0.27"
+  query: "sequence by process.parent.entity_id with maxspan=30s\n[process where event.type == \"start\" and \n  process.name == \"nohup\" and\n  ((process.command_line like~ (\"*/tmp/*\",\n                                \"*/var/tmp/*\",\n                                \"*/private/var/tmp/*\",\n                                \"*/var/folders/*\", \n                                \"*/Users/Shared/*\", \n                                \"*/Library/*\", \n                                \"*/var/root/*\", \n                                \"*/usr/local/bin/*\", \n                                \"*/Applications/*\")) or\n   (process.args like~ \"npm\" and process.args like~ \"install\")) and\n  process.parent.name like~ (\"bash\", \"sh\", \"zsh\", \"tclsh*\", \"terminal\", \"python*\", \"osascript\") and\n  not process.Ext.effective_parent.executable == \"/Applications/SteelSeries GG/SteelSeries GG.app/Contents/MacOS/SteelSeries GG\" and\n  not (process.parent.name in (\"zsh\", \"bash\", \"sh\") and process.parent.command_line : (\n    \"*/.claude/shell-snapshots/*\",\n    \"*/.claude-personal/shell-snapshots/*\",\n    \"*/.codex/shell_snapshots/*\",\n    \"*/.cursor/shell-snapshots/*\",\n    \"*__CURSOR_SANDBOX_ENV_RESTORE*\")) and\n  not process.command_line : (\n    \"*/tmp/claude/*\",\n    \"*/private/tmp/claude/*\",\n    \"*/private/tmp/claude-*/*\",\n    \"*/Library/Application Support/Claude/local-agent-mode-sessions/*\",\n    \"*/Library/Android/sdk/emulator/*\")]\n[network where event.type == \"start\" and\n   not cidrmatch(destination.ip, \n       \"240.0.0.0/4\", \"233.252.0.0/24\", \"224.0.0.0/4\", \"198.19.0.0/16\", \"192.18.0.0/15\", \n       \"192.0.0.0/24\", \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \n       \"192.0.2.0/24\", \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.168.0.0/16\", \"192.88.99.0/24\", \n       \"100.64.0.0/10\", \"192.175.48.0/24\", \"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\",\n       \"::1\", \"FE80::/10\", \"FF00::/8\")]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1564
+          name: Hide Artifacts
+          reference: "https://attack.mitre.org/techniques/T1564/"
+          subtechnique:
+            - id: T1564.003
+              name: Hidden Window
+              reference: "https://attack.mitre.org/techniques/T1564/003/"
+            - id: T1564.011
+              name: Ignore Process Interrupts
+              reference: "https://attack.mitre.org/techniques/T1564/011/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.16.0"

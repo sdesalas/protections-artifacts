@@ -1,0 +1,53 @@
+id: "2f45b36f-a60d-46c9-9f82-eb80ab62ce7f_1.0.1"
+type: security-rule
+attributes:
+  description: |
+    This rule monitors for attempts to clear logs using the "journalctl" command on Linux systems. Adversaries may use this
+    technique to cover their tracks by deleting or truncating log files, making it harder for defenders to investigate their
+    activities. The rule looks for the execution of "journalctl" with arguments that indicate log clearing actions, such as
+    "--vacuum-time", "--vacuum-size", or "--vacuum-files".
+  rule_id: "2f45b36f-a60d-46c9-9f82-eb80ab62ce7f"
+  license: Elastic License v2
+  name: Attempt to Clear Logs via Journalctl
+  os_list:
+    - linux
+  version: "1.0.1"
+  query: |
+    process where event.type == "start" and event.action == "exec" and process.name == "journalctl" and
+    process.args like~ ("--vacuum-time=?s", "--vacuum-size=?M", "--vacuum-files=*") and
+    not (
+      process.parent.args in ("/usr/lib/armbian/armbian-truncate-logs", "/root/innovasive_reverseproxy/backupscript/cleanup_hour.sh") or
+      process.parent.executable == "/tmp/newroot/usr/bin/sudo"
+    )
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1070
+          name: Indicator Removal
+          reference: "https://attack.mitre.org/techniques/T1070/"
+          subtechnique:
+            - id: T1070.002
+              name: Clear Linux or Mac System Logs
+              reference: "https://attack.mitre.org/techniques/T1070/002/"
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

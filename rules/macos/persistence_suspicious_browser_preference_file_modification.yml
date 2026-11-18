@@ -1,0 +1,40 @@
+id: "4515e310-7af8-4c5e-8f73-54497d051c75_1.0.4"
+type: security-rule
+attributes:
+  description: |
+    Detects modification of browser preference files by suspicious processes like scripts or untrusted binaries. Threat
+    actors modify these files to establish persistence and control browser extensions.
+  rule_id: "4515e310-7af8-4c5e-8f73-54497d051c75"
+  license: Elastic License v2
+  name: Suspicious Browser Preference File Modification
+  os_list:
+    - macos
+  reference:
+    - "https://securityscorecard.com/wp-content/uploads/2025/02/Operation-Marstech-Mayhem-Report_021025_03.pdf"
+  version: "1.0.4"
+  query: "file where event.action == \"modification\" and file.path like~ (\"/Users/*/Library/Application Support/Google/Chrome/*/Preferences\", \n                                                              \"/Users/*/Library/Application Support/Microsoft Edge/*/Preferences\", \n                                                              \"/Users/*/Library/Application Support/BraveSoftware/Brave-Browser/*/Preferences\", \n                                                              \"/Users/*/Library/Application Support/Firefox/Profiles/*.default-release/prefs.js\") and \n (process.name like~ (\"python*\", \"node\", \"osascript\", \"ruby\", \"bash\", \"sh\", \"zsh\") or \n (process.code_signature.trusted == false or process.code_signature.exists == false))\n"
+  min_endpoint_version: "8.11.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1176
+          name: Software Extensions
+          reference: "https://attack.mitre.org/techniques/T1176/"
+          subtechnique:
+            - id: T1176.001
+              name: Browser Extensions
+              reference: "https://attack.mitre.org/techniques/T1176/001/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "8.11.0"

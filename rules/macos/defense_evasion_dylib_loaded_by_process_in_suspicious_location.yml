@@ -1,0 +1,34 @@
+id: b97ecb91-b4bb-480e-a855-47f2a9ec107c_1.0.24
+type: security-rule
+attributes:
+  description: |
+    Identifies instances where a dynamic library (dylib) is loaded by a process running from a suspicious or non-standard
+    path on macOS. Threat actors may abuse this technique by using compromised or malicious processes originating from
+    unusual locations to load dylibs for code injection, persistence, or privilege escalation. A dylib loaded from a
+    suspicious process path can indicate that the process itself is malicious, has been tampered with, or is attempting to
+    evade detection by operating from a non-standard location.
+  rule_id: b97ecb91-b4bb-480e-a855-47f2a9ec107c
+  license: Elastic License v2
+  name: Dylib Loaded by Process in Suspicious Location
+  os_list:
+    - macos
+  version: "1.0.24"
+  query: "sequence by process.entity_id with maxspan=10s\n[process where event.type == \"start\" and event.action == \"exec\" and \n  process.executable like~ (\"/var/tmp/*\", \n                            \"/var/lib/*\", \n                            \"/tmp/*\", \n                            \"/var/folders/*\",\n                            \"/Library/Graphics/*\",\n                            \"/Library/Containers/*\", \n                            \"/Library/Services/*\",\n                            \"/var/root/*\", \n                            \"/private/var/root/*\",\n                            \"/Library/WebServer/*\", \n                            \"/Library/Fonts/*\")]\n[library where event.action == \"load\" and \n  not dll.code_signature.trusted == true and not\n  dll.path like (\"/Library/Apple/*\", \"/private/var/db/oah/*\", \"/System/Library/*\", \"/private/var/root/Library/Developer/CoreSimulator/*\", \n              \"/private/var/root/Library/Caches/ms-playwright/*\", \"/Library/Developer/*\", \n              \"/usr/lib/libobjc-trampolines.dylib\")]\n"
+  min_endpoint_version: "8.11.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.11.0"

@@ -1,0 +1,76 @@
+id: b982a098-f3c6-42d7-958a-86c46f06360b_1.0.7
+type: security-rule
+attributes:
+  description: |
+    This rule detects when a Node.js web server executes a payload. Attackers may exploit RCE or file upload vulnerabilities
+    to execute malicious payloads on Node.js web servers to gain/maintain access and to establish a command and control
+    channel.
+  rule_id: b982a098-f3c6-42d7-958a-86c46f06360b
+  license: Elastic License v2
+  name: Payload Execution by Node.js Web Server
+  os_list:
+    - linux
+  version: "1.0.7"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.interactive == false and\nprocess.parent.name == \"node\" and process.parent.command_line like~ (\n  \"*next start*\", \"*--port*\", \"*PORT=*\", \"*HOST=*\", \"*0.0.0.0*\", \"*/dist/*.js*\", \"*/build/*.js*\", \"*/server/*.js*\",\n  \"*/app/*.js*\", \"*/apps/*/*.js*\", \"*/index.js*\", \"*/main.js*\", \"*/srv/*\", \"*/opt/*\", \"*/var/www/*\"\n) and\nprocess.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\", \"mksh\", \"busybox\") and\nprocess.args in (\"-c\", \"-cl\", \"-lc\") and (\n  process.command_line like~ (\n\n    /* Suspicious Paths */\n    \"* /tmp/* \", \"* /var/tmp/* \", \"* /dev/shm/*\", \"* /run/*\", \"* /var/run/*\",\n\n    /* Encoding, Decoding & Piping */\n    \"*|sh\", \"*| sh *\", \"*| sh \", \"*|bash*\", \"*| bash*\", \"*|zsh*\",  \"*| zsh*\", \"*|dash*\",  \"*| dash*\",\n    \"*|python*\", \"*| python*\", \"*|php*\", \"*| php*\", \"*|perl*\", \"*| perl*\", \"*|ruby*\", \"*| ruby*\",\n    \"*|node*\", \"*| node*\", \"*|lua*\",  \"*| lua*\", \"*|busybox*\", \"*| busybox*\", \"*|*base64 -d*\", \"*|*base64 --decode*\",\n    \"*|*base64 --decode*\", \"*|*openssl base64 -d*\", \"*xxd *\", \"*| openssl*enc * -d *\", \"*b64decode -r*\",\n\n    /* Interpreter Execution */\n    \"*python -c*\", \"*python3 -c*\", \"*php -r*\", \"*perl -e*\", \"*ruby -e*\", \"*lua -e*\", \"*node -e *\",\n\n    /* Reverse Shells */\n    \"*netcat *\", \"* nc *\", \"*ncat *\", \"*/dev/tcp*\", \"*/dev/udp/*\", \"*socat *\", \"*openssl*s_client *\", \"*stty*raw*-echo*\",\n    \"*mkfifo /tmp/*\", \n\n    /* File Access */\n    \"*>*/etc/cron*\", \"*crontab*\", \"*/etc/ssh*\", \"*/home/*/.ssh/*\", \"*/root/.ssh*\", \"*~/.ssh/*\", \"*/etc/shadow*\",\n    \"*/etc/passwd*\", \"*/etc/master.passwd*\",\n\n    /* Enumeration & Discovery */\n    \"*/etc/hosts*\", \"*/etc/resolv.conf*\", \"*/etc/hostname*\", \"*/etc/issue*\", \"*/etc/os-release*\", \"*lsb_release*\",\n    \"*/proc/*/environ*\", \"*sudo -l*\", \"*/proc/*/cgroup*\", \"*dockerenv*\", \"*/proc/*/mountinfo*\", \"*printenv*\",\n    \"*cat*.env *\", \"*getcap*\", \"*capsh*\", \"*find / *\", \"*netstat *\",\n\n    /* AWS Credentials */\n    \"*aws_access_key_id*\", \"*aws_secret_access_key*\", \"*aws_session_token*\", \"*accesskeyid*\", \"*secretaccesskey*\",\n    \"*.aws/credentials*\", \"*/.aws/config*\",\n\n    /* Azure Credentials */\n    \"*AZURE_CLIENT_ID*\", \"*AZURE_TENANT_ID*\", \"*AZURE_CLIENT_SECRET*\", \"*AZURE_FEDERATED_TOKEN_FILE*\",\n    \"*IDENTITY_ENDPOINT*\", \"*IDENTITY_HEADER*\", \"*MSI_ENDPOINT*\", \"*MSI_SECRET*\", \"*/.azure/*\",\n    \"*/run/secrets/azure/*\",\n\n    /* GCP Credentials */\n    \"*/.config/gcloud/*\", \"*application_default_credentials.json*\", \"*type: service_account*\",\n    \"*client_email*\", \"*private_key_id*\", \"*/run/secrets/google/*\", \"*GOOGLE_APPLICATION_CREDENTIALS*\",\n\n    /* Misc. Cloud */\n    \"*/.npmrc*\", \"*/secrets/kubernetes.io/serviceaccount/*\",\n\n    /* Helpers */\n    \"*timeout *sh -c *\", \"*env *sh *-c*\", \"*exec -a*\",\n\n    /* Miscellaneous */\n    \"*chattr *\", \"*busybox *\",  \"*#!*\", \"*chmod +x *\", \"*chmod 777*\", \"*chpasswd*\",\n    \"*<?php*?>*\", \"*kworker*\",\n    \n    /* Decompression */\n    \"*gzip -*d *\", \"*bzip2 -*d *\", \"*xz -*d *\", \"*tar -*x*\",\n    \n    /* Path Traversal */\n    \"*../../../*etc/*\", \"*/.../*\", \"*../../../*home/*/*\", \"*../../../*root/*\",\n\n    /* File Upload/Download */\n    \"*pastebin.com*\", \"*transfer.sh*\", \"*bashupload.com*\"\n  ) or\n  process.args in (\"id\", \"whoami\", \"hostname\")\n) and\nnot (\n  process.command_line like (\n    \"sh -c node -v || nodejs -v\", \"*./postinstall*\", \"*./_postinstall*\", \"/bin/sh -c lsb_release -sd\",\n    \"*/etc/freepbx.conf*\", \"*betterme/image-processing-service-admin-frontend*\", \"/bin/sh -c exit 0 || node patches/*.js\",\n    \"\"\"/bin/sh -c export LC_ALL=C; netstat -tunap | grep \"ESTABLISHED\\|SYN_SENT\\|SYN_RECV\\|FIN_WAIT1\\|FIN_WAIT2\\|TIME_WAIT\\|CLOSE\\|CLOSE_WAIT\\|LAST_ACK\\|LISTEN\\|CLOSING\\|UNKNOWN\"; unset LC_ALL\"\"\"\n  ) or\n  process.parent.args like (\n    \"/opt/bitdefender/*\", \"/opt/cursor-agent/*\", \"/home/*/*\", \"/root/*\", \"/var/www/html/ext/.deloreanbuild\",\n    \"/usr/lib/node_modules/openclaw/dist/index.js\", \"/opt/yarn*\", \"*anthropic-ai/claude-code/cli.js*\",\n    \"/usr/bin/docker-builder\", \"/opt/jenkins/.nvm/versions/node/*/bin/npm\", \"/usr/local/renovate/node\",\n    \"/opt/buildagent/work/*/node_modules/.bin/cypress\", \"/var/www/html/ext/node_modules/.bin/webpack\",\n    \"/opt/containerbase/tools/node/*/bin/node\", \"/opt/*/bin/*/node_modules/.bin/bower\", \"/usr/local/bin/cursor-agent\"\n  ) or\n  process.args like (\"npx *\", \"node /var/www/html/ext/node_modules/.bin/webpack*\", \"grep* | awk*\") or\n  process.parent.executable like \"/opt/jenkins/workspace/*/bin/node\" or\n  process.working_directory == \"/runner/_work/personify/personify/node_modules/snyk\" or\n  process.parent.working_directory == \"/opt/hermes\" or \n  (process.command_line like \"*REPO_NAME*\" and process.parent.command_line like \"node /usr/bin/n8n*\") or\n  (process.parent.command_line == \"node /var/www/html/fs-ws-api/controller/cronJob.js\" and process.command_line like \"/bin/sh -c nc -zv 10.*\") or\n  (\n    process.parent.executable == \"/opt/liongard/node/bin/node\" and\n    process.command_line in (\n     \"/bin/sh -c cut -d: -f1 /etc/passwd\", \"/bin/sh -c hostname\", \"/bin/sh -c sudo cat /etc/ssh/sshd_config\", \"/bin/sh -c whoami\"\n    )\n  ) or\n  (\n    process.executable like \"/opt/node-*-linux-x64/bin/node\" and\n    process.working_directory == \"/aplicaciones/backend/label-printing\" and\n    process.command_line like \"/bin/sh -c python3 ./socket/main.py*\"\n  ) or\n  (process.parent.executable like \"/opt/actions-runner/_work/_tool/node/*/x64/bin/node\" and process.command_line == \"/bin/sh -c cat /etc/os-release\") or\n  (process.parent.executable == \"/opt/node/bin/node\" and process.parent.command_line == \"node /opt/node/bin/npm ci\") or\n  (\n    process.parent.executable like \"/opt/hostedtoolcache/node/*/x64/bin/node\" and\n    process.parent.args in (\"install\", \"ci\") and\n    process.parent.args like \"/opt/hostedtoolcache/node/*\"\n  ) or\n  (process.parent.executable like \"/opt/plesk/node/*/bin/node\" and process.parent.args in (\"install\", \"ci\")) or\n  (\n    process.parent.command_line == \"node /opt/app-root/app/build/index.js\" and\n    process.command_line == \"/bin/sh -c netstat -tunlp\"\n  ) or\n  process.parent.executable like (\n    \"*/.cursor-server/bin/linux-x64/*/node\", \"*/.vscode-server/*/node\",\n    \"*/.vscode-server/cli/servers/*/server/node\", \"*/code-server/*/lib/node\"\n  ) or\n  (process.parent.executable like \"/opt/actions-runner/_work/_tool/node/*/x64/bin/node\" and process.parent.args like \"/opt/actions-runner/_work/*/build/workers/processChild.js\")\n)\n"
+  min_endpoint_version: "8.2.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1190
+          name: Exploit Public-Facing Application
+          reference: "https://attack.mitre.org/techniques/T1190/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1505
+          name: Server Software Component
+          reference: "https://attack.mitre.org/techniques/T1505/"
+          subtechnique:
+            - id: T1505.003
+              name: Web Shell
+              reference: "https://attack.mitre.org/techniques/T1505/003/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1210
+          name: Exploitation of Remote Services
+          reference: "https://attack.mitre.org/techniques/T1210/"
+      tactic:
+        id: TA0008
+        name: Lateral Movement
+        reference: "https://attack.mitre.org/tactics/TA0008/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.2.0"

@@ -1,0 +1,41 @@
+id: "572ec53e-fc79-43ad-8bdd-573999ff70d7_1.0.38"
+type: security-rule
+attributes:
+  description: |
+    Identifies when a process invoke the task_for_pid system service which gives a process the capability to control another
+    process. A process needs root privileges to call task_for_pid or possesses the com.apple.security.get-task-allow
+    entitlement. This type of behavior may indicate inter-process code injection or legit debugging activity. Adversaries
+    may inject code into processes in order to evade process-based defenses as well as possibly elevate privileges.
+  rule_id: "572ec53e-fc79-43ad-8bdd-573999ff70d7"
+  license: Elastic License v2
+  name: Suspicious Task for Pid System Call
+  os_list:
+    - macos
+  reference:
+    - "http://os-tres.net/blog/2010/02/17/mac-os-x-and-task-for-pid-mach-call/"
+    - "https://knight.sc/malware/2019/03/15/code-injection-on-macos.html"
+    - "https://blog.xpnsec.com/macos-injection-via-third-party-frameworks/"
+    - "https://wojciechregula.blog/post/learn-xpc-exploitation-part-3-code-injections/"
+  version: "1.0.38"
+  query: "process where event.action == \"process_open\" and\n (process.code_signature.trusted == false or process.code_signature.exists == false) and \n not process.executable like~ (\"/private/var/folders/*\", \n                               \"/Users/*/.pyenv/*\",\n                               \"/opt/homebrew/*\",\n                               \"/nix/store/*\",\n                               \"/Users/*/.homebrew/*\",\n                               \"/Users/*/miniconda3/envs/*\",\n                               \"/usr/local/Cellar/*\",\n                               \"/usr/local/Caskroom/*\",\n                               \"/System/*\") and \n  not process.name == \"htop\" and \n  not Target.process.executable like \"/Users/*/anaconda3/envs/python*\" and\n  not (startswith~(process.parent.executable, Target.process.executable) or \n   startswith~(process.executable, Target.process.executable)) and \n  not process.hash.sha256 : (\"d41e02b5366b186a237f33150baa7c5ef4747ba06646a193ab9ba5125fc6ef7a\",\n                             \"bee1a00ffb1c4b7c2c4784a1fdcb849dc7853b9deb5173ff4c5a08209c84bc26\",\n                             \"6ac6f81d80afff9b6ee9d3608d9964566a39188d0166ae867df97c624e632b98\",\n                             \"8698f4e54c64667c4a4c7ccde3fbcd7babc6478a5e8e22732732f633cc2fc499\") and \n  not (process.executable like \"/Users/*/micromamba/envs/grid/bin/python*\" and Target.process.executable in (\"/bin/bash\", \"/usr/bin/which\", \"/usr/bin/uname\")) and\n  not (process.executable like \"/Users/*/.local/share/uv/python/cpython-*-macos-aarch64-none/bin/python*\" and Target.process.executable like \"/Users/*/Code/eis-ray/.venv/lib/python*/site-packages/ray/core/src/ray/gcs/gcs_server\") and \n  not (process.executable like \"/Users/*/anaconda?/bin/python*\" and Target.process.executable like \"/Users/*/anaconda?/envs/python*/bin/python*\")\n"
+  min_endpoint_version: "8.4.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

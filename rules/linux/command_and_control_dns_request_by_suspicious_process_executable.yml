@@ -1,0 +1,58 @@
+id: "503823dd-722f-4f23-84fc-8a6024f505f2_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    This rule detects DNS requests initiated by suspicious process executables. Malware authors may use these requests to
+    communicate with command and control infrastructure, exfiltrate data from the target system, or to download payloads for
+    later execution.
+  rule_id: "503823dd-722f-4f23-84fc-8a6024f505f2"
+  license: Elastic License v2
+  name: DNS Request by Suspicious Process Executable
+  os_list:
+    - linux
+  version: "1.0.8"
+  query: "sequence by process.entity_id with maxspan=10s\n  [process where event.type == \"start\" and event.action == \"exec\" and (\n    process.executable like (\n      \"./*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/run/*\", \"/var/run/*\", \"/boot/*\", \"/sys/*\",\n      \"/lost+found/*\", \"/var/mail/*\"\n    ) or\n    process.name like \".*\"\n  ) and\n  not (\n    process.executable like (\n      \"./usr/bin/podman\", \"./\", \"/dev/.buildkit_qemu_emulator\", \"/u01/*/webtier/ohs/bin/.apachectl\",\n      \"/usr/local/share/npm-global/lib/node_modules/opencode-ai/bin/.opencode\", \"/usr/bin/squeue\", \"/usr/bin/scontrol\",\n      \"./usr/bin/qemu-aarch64-static\", \"/nix/store/*\", \"/home/agent/.local/share/coursier/bin/.bloop.aux\",\n      \"/var/tmp/pamac-build-richard/*/bin/node\", \"/usr/bin/scancel\", \"/usr/bin/sbatch\", \"/usr/bin/sacct\"\n    ) or\n    (\n      process.executable like \"/nix/store/*/bin/.gh-wrapped\" and\n      process.command_line like \"/home/*/.nix-profile/bin/gh *\"\n    ) or\n    (\n      process.executable == \"./usr/bin/qemu-x86_64-static\" and\n      process.command_line like \"/usr/libexec/qemu-binfmt/x86_64-binfmt-P *\"\n    ) or\n    process.parent.executable in (\"/usr/bin/skopeo\", \"/usr/bin/buildah\") or\n    process.args == \"datadog-ipc-helper\" or\n    process.executable like (\n      \"/nix/store/*claude-code-*/bin/.claude-wrapped\",\n      \"*/node_modules/@kilocode/cli/bin/.kilo\"\n    )\n  )]\n  [dns where event.action == \"lookup_result\" and dns.question.name != \"localhost\" and\n  not (\n    dns.question.name == \"pypi.org\" or\n    (process.executable like \"/home/*/.elastic-ramen\" and dns.question.name in (\"registry.npmjs.org\", \"models.dev\")) \n  )\n  ]\n"
+  min_endpoint_version: "9.3.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1204
+          name: User Execution
+          reference: "https://attack.mitre.org/techniques/T1204/"
+          subtechnique:
+            - id: T1204.002
+              name: Malicious File
+              reference: "https://attack.mitre.org/techniques/T1204/002/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+          subtechnique:
+            - id: T1071.004
+              name: DNS
+              reference: "https://attack.mitre.org/techniques/T1071/004/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "9.3.0"

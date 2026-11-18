@@ -1,0 +1,41 @@
+id: c34a9dca-66cf-4283-944d-1800b28ae690_1.0.39
+type: security-rule
+attributes:
+  description: |
+    Identifies suspicious child processes of frequently targeted Microsoft Office applications (Word, PowerPoint, Excel).
+    These child processes are often launched during exploitation of Office applications or from documents with malicious
+    macros.
+  rule_id: c34a9dca-66cf-4283-944d-1800b28ae690
+  license: Elastic License v2
+  name: Suspicious Microsoft Office Child Process
+  os_list:
+    - windows
+  reference:
+    - "https://lolbas-project.github.io/"
+  version: "1.0.39"
+  query: "process where event.action == \"start\" and\n  process.parent.name : (\"excel.exe\", \"powerpnt.exe\", \"winword.exe\") and\n  (\n\t\t(process.pe.original_file_name : (\n\t\t    \"rundll32.exe\", \n\t\t    \"regsvr32.exe\", \n\t\t    \"bitsadmin.exe\",\n\t\t    \"certutil.exe\", \n\t\t    \"installutil.exe\", \n\t\t    \"schtasks.exe\", \n\t\t    \"wmic.exe\", \n\t\t    \"cscript.exe\",\n\t\t    \"cmstp.exe\", \n\t\t    \"Microsoft.Workflow.Compiler.exe\", \n\t\t    \"regasm.exe\", \n\t\t    \"regsvcs.exe\", \n\t\t    \"mshta.exe\", \n\t\t    \"msxsl.exe\", \n\t\t    \"ieexec.exe\", \n\t\t    \"sc.exe\",\n\t\t    \"javaw.exe\",\n\t\t    \"pcalua.exe\",\n\t\t    \"curl.exe\",\n\t\t    \"ScriptRunner.exe\",\n\t\t    \"CertOC.exe\",\n\t\t    \"Workfolders.exe\",\n\t\t    \"odbcconf.exe\",\n\t\t    \"extrac32.exe\",\n\t\t    \"expand\"\n\t\t   ) and\n\t\tnot process.args : (\"-Embedding\", \"-hashfile\")\n\t\t) or\n\t\t\n\t\t(process.pe.original_file_name : \"wscript.exe\" and\n\t\t process.command_line : (\"*:\\\\ProgramData\\\\*\",\n\t\t                         \"*:\\\\Users\\\\Public\\\\*\",\n\t\t                         \"*\\\\AppData\\\\*\",\n\t\t                         \"*\\\\Windows\\\\Temp\\\\*\",\n\t\t                         /* CVE-2021-40444 */\n\t\t                         \"*../../..*\", \"*..\\\\..\\\\*\", \"*js:..*\", \"*vbs:..*\", \"*wsf:..*\", \"*jse:..*\", \"*vbe:..*\")) or\n\t\t\n\t\t(process.pe.original_file_name : \"msiexec.exe\" and process.args : \"http*\") or\n\t\t/* Issue #439 */\n\t\t(process.name : \"explorer.exe\" and\n\t\t process.args : (\"*.hta*\", \"*.vb*\", \"*.wsh*\", \"*.js*\", \"*.ps*\", \"*.scr*\", \"*.pif*\", \"*bat*\", \"*.cmd*\") and\n\t\t /* FPs related to execution from file share */\n\t\t not process.working_directory : \"\\\\\\\\*\"\n\t\t ) or\n\n\t\t/* Masquerading as WerFault or Splwow64 both of which are common MS Office Child Processes */\n\t\t(process.name : (\"WerFault.exe\", \"splwow64.exe\") and process.args_count == 1) or\n\n        /* in the wild 0 day - 52945af1def85b171870b31fa4782e52 */\n\t\t(process.pe.original_file_name == \"msdt.exe\" and process.command_line : \"*IT_BrowseForFile*\")\n\n  ) and\n\n\t/* FP related to printing */\n\tnot (process.name : \"rundll32.exe\" and process.command_line : \"*\\\\system32\\\\spool\\\\*\") and\n\n\t/* Issue #458 */\n\tnot (process.name : \"rundll32.exe\" and\n\t     process.args : (\"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\", \"ndfapi.dll,NdfRunDllDiagnoseWithAnswerFile\", \"shwebsvc.dll,AddNetPlaceRunDll\")) and\n\n    /* Issue #568 */\n\tnot (process.name : \"schtasks.exe\" and process.args : \"/change\" and process.args : \"Microsoft\\\\Office\\\\Office Serviceability Manager\") and\n\n\t/* Issue #568 */\n\tnot (process.name : \"regsvr32.exe\" and\n\t     process.args : (\"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\", \"?:\\\\Windows\\\\system32\\\\*.dll\", \"?:\\\\Windows\\\\system32\\\\*.ocx\")) and\n\n\tnot (process.executable : \"?:\\\\Windows\\\\hh.exe\" and process.args : \"-mapid\") and\n\tnot (process.executable : \"?:\\\\Windows\\\\System32\\\\sc.exe\" and process.args : \"queryex\") and\n\tnot (process.name : \"rundll32.exe\" and process.command_line : (\"?:\\\\Windows\\\\SysWOW64\\\\rundll32.exe --eoim\", \"*--enable-speech-input --auto-scan-plugin --lang=*\")) and\n\tnot (process.name : \"RegAsm.exe\" and process.args :  \"?:\\\\Program Files (x86)\\\\Thomson Reuters\\\\WSF\\\\*.dll\") and\n\tnot (process.name : \"rundll32.exe\" and\n\t     process.args : (\"?:\\\\WINDOWS\\\\system32\\\\hotplug.dll,HotPlugSafeRemovalDriveNotification\",\n\t                     \"printui.dll,PrintUIEntry\",\n\t                     \"InetCpl.cpl,ClearMyTracksByProcess\",\n\t                     \"url.dll,FileProtocolHandler\")) and\n\tnot (process.name : \"hh.exe\" and process.args : (\"?:\\\\Program Files (x86)\\\\*\", \"?:\\\\Program Files (x86)\\\\*\")) and\n\tnot (process.name : \"rundll32.exe\" and process.command_line : \"\\\"C:\\\\WINDOWS\\\\SysWOW64\\\\rundll32.exe\\\" --eoim\") and\n\tnot (process.name : \"rundll32.exe\" and process.args : \"?:\\\\PROGRA~2\\\\MICROS~*\\\\Office*\\\\GrooveUtil.DLL,GetResourceModulePath\") and\n\tnot (process.name : \"hh.exe\" and process.args : (\"*:\\\\Program Files\\\\*\", \"*:\\\\Program Files (x86)\\\\*\")) and\n\tnot (process.name : \"javaw.exe\" and process.args : \"?:\\\\PROGRA~2\\\\Andar\\\\ANDARP~1\\\\bin\\\\andar.jar\") and\n\tnot (process.name : \"rundll32.exe\" and\n\t     process.args : (\"?:\\\\Windows\\\\System32\\\\LogiLDA.dll,LogiFetch\", \"?:\\\\Windows\\\\System32\\\\dfshim.dll,ShOpenVerbShortcut\")) and\n\tnot (process.name : \"rundll32.exe\" and process.args : \"-localserver\" and process.args : \"22d8c27b-47a1-48d1-ad08-7da7abd79617\") and\n\tnot process.executable : \"?:\\\\Program Files (x86)\\\\Andar\\\\Jre*\\\\bin\\\\javaw.exe\" and\n\tnot (process.name : \"mshta.exe\" and process.args : \"vbscript:close(CreateObject(WScript.Shell).Popup(Works only at day level,1,Warning))\") and\n\tnot (process.name : \"rundll32.exe\" and process.command_line : \"\\\"C:\\\\Windows\\\\system32\\\\rundll32.exe\\\" --eoim\")\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+  internal:
+    min_endpoint_version: "7.15.0"

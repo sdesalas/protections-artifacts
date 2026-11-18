@@ -1,0 +1,74 @@
+id: "87d16b52-e0be-4dd2-b6a8-056f188be018_1.0.9"
+type: security-rule
+attributes:
+  description: |
+    Detects when an interpreter process creates a memory file descriptor and executes a command in the proc file system.
+    This activity indicates an active attempt to execute a fileless payload and should be considered highly abnormal or
+    suspicious. This activity can occur when the memfd syscall is utilized to create a memory resident file, like a payload,
+    and then uses it to execute a process via a command and control channel.
+  rule_id: "87d16b52-e0be-4dd2-b6a8-056f188be018"
+  license: Elastic License v2
+  name: Potential Fileless Execution via Memory File Descriptor from Interpreter
+  os_list:
+    - linux
+  version: "1.0.9"
+  query: "process where event.type == \"start\" and event.action == \"memfd_create\" and (\n  (process.name like \"python*\" and process.args == \"-c\") or\n  (process.name like (\"perl*\", \"ruby*\", \"lua*\", \"node\", \"nodejs\") and process.args like \"-e*\") or\n  (process.name like \"php*\" and process.args like \"-r*\") or\n  process.name like (\"*.py\", \"*.pyc\", \"*.lua\", \"*.pl\", \"*.rb\", \"*.bin\", \"*.php\", \"*.js\", \"*.mjs\") or\n  (\n    process.name like (\"python*\", \"perl*\", \"php*\", \"ruby*\", \"lua*\", \"node\", \"java\", \"javaw\") and\n    (\n      process.args like (\n        \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/run/user/*\", \"/var/run/user/*\", \"/root/*\",\n        \"/boot/*\", \"/sys/*\", \"/lost+found/*\", \"/proc/*\", \"/var/mail/*\", \"/var/www/*\"\n      ) and process.args_count <= 2\n    ) \n  )\n) and process.Ext.memfd.name != null and\nnot (\n  process.executable like (\n    \"/usr/lib/libreoffice/program/soffice.bin\", \"/app/bin/evolution.bin\", \"/opt/cpanel/ea-php83/root/usr/bin/php-cgi\",\n    \"/snap/libreoffice/*/lib/libreoffice/program/soffice.bin\", \"/usr/NX/bin/nxrunner.bin\",\n    \"/usr/lib64/libreoffice/program/soffice.bin\", \"/opt/libreoffice*/program/soffice.bin\", \"/opt/hrt/hrtpylon-*/bin/python3*\",\n    \"/usr/NX/bin/nxplayer.bin\", \"/usr/bin/qgis.bin\", \"/opt/gitlab/embedded/bin/ruby\", \"/app/libreoffice/program/soffice.bin\",\n    \"/ztank/sw/eb/sw/Python/*/bin/python*\", \"/sw/eb/sw/Python/*/bin/python*\", \"/home/*/.local/share/uv/python/cpython*/bin/python*\",\n    \"/opt/micromamba/bin/python*\", \"/opt/balenaEtcher/balena-etcher.bin\", \"/snap/rocketchat-desktop/*/rocketchat-desktop.bin\"\n  ) or\n  process.parent.command_line == \"/bin/sh -e /usr/lib/php/sessionclean\" or\n  (\n    process.name like \"php*\" and (\n      process.Ext.memfd.name in (\n        \"memfd:opcache_lock\", \"anon_hugepage\", \"opcache_lock\", \"memfd:anon-handle\",\n        \"memfd:anon-shm-handle\", \"memfd:trampoline_dependencies.so\", \"memfd:spawn_worker_trampoline\"\n      ) or\n      process.command_line == \"php public/index.php\"\n    )\n  ) or\n  (\n    process.name like \"python*\" and\n    process.Ext.memfd.name like (\n      \"wayland-shm\", \"memfd:pulseaudio\", \"memfd:dd_inject_info\", \"memfd:dd_language_detected\", \"wayland-cursor\",\n      \"memfd:wayland-cursor\", \"pulseaudio\", \"datadog-tracer-info*\", \"memfd:datadog-tracer-info-*\", \"memfd:libffi\",\n      \"libffi\", \"memfd:xshmfence\", \"xshmfence\", \"JITCode*\", \"unknown-usage*\", \"JSVMStack*\", \"JSGCHeap*\",\n      \"OTEL_CTX\", \"memfd:OTEL_CTX\"\n    )\n  ) or\n  (\n    process.name like (\"ruby*\", \"node\", \"nodejs\") and\n    process.Ext.memfd.name like (\"OTEL_CTX\", \"memfd:OTEL_CTX\")\n  ) or\n  (\n    process.name like \"ruby*\" and\n    process.Ext.memfd.name like (\"memfd:libffi\", \"libffi\")\n  ) or\n  (\n    process.name like (\"node\", \"nodejs\") and\n    process.Ext.memfd.name like (\"datadog-tracer-info*\", \"memfd:datadog-tracer-info-*\")\n  ) or\n  process.parent.executable like (\n    \"/opt/saltstack/salt/bin/python3*\", \"/usr/lib/systemd/systemd\", \"/usr/bin/gnome-shell\", \"/usr/NX/bin/nxexec\",\n    \"/usr/bin/sddm\", \"/usr/bin/bwrap\", \"/usr/bin/rofi\", \"/usr/bin/dbus-daemon\", \"/tmp/.mount_*/lm-studio\",\n    \"/usr/libexec/gnome-session-binary\", \"/usr/local/aegis/AliSecCheckTmp/AliSecCheck\", \"./runc\", \"/usr/bin/runc\",\n    \"/snap/claude-ai-desktop/*/app/claude-desktop.bin\", \"/home/*/Programy/WBEST-MNT/WBEST-MNTv1_0_Linux\",\n    \"/opt/LM-Studio/lm-studio\", \"/var/lib/rancher/rke2/data/*/bin/runc\", \"/var/lib/rancher/rke2/data/*/bin/containerd-shim-runc-v2\"\n  ) or\n  process.parent.args like (\"/opt/plesk/php/*/bin/php\", \"/usr/lib/plesk-*/maxlifetime\") or\n  process.parent.command_line in (\"/bin/sh /usr/local/bin/docker-php-ext-enable xdebug\", \"/usr/bin/python3 /usr/bin/nobara-updater --all\") or\n  process.parent.command_line like \"*/home/*/.claude/shell-snapshots/snapshot-*\" or\n  (\n    process.command_line == \"buildah-chroot-runtime\" and\n    process.Ext.memfd.name == \"memfd:buildah-chroot-runtime\"\n  ) or\n  (\n    process.name like \"ruby*\" and\n    process.args == \"-e\" and\n    process.args == \"sandbox\"\n  ) or\n  (\n    process.name like \"ruby*\" and\n    process.Ext.memfd.name like \"memfd:datadog-tracer-info-*\"\n  ) or\n  (\n    process.executable == \"/usr/bin/perl\" and\n    process.Ext.memfd.name in (\"memfd:dd_inject_info\", \"memfd:dd_language_detected\")\n  ) or\n  (process.name like \"python3*\" and process.args == \"/usr/bin/supervisord\") or\n  (process.name == \"node\" and process.args == \"appCron.js\") or\n  process.parent.executable like \"*/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex\" or\n  (process.name like \"python*\" and process.args == \"/etc/supervisor/supervisord.conf\") or\n  (process.executable == \"/usr/local/bin/php\" and process.Ext.memfd.name == \"memfd:OTEL_CTX\") or\n  (process.executable like \"/opt/beyondtrust/*\" and process.Ext.memfd.name in (\"memfd:xshmfence\", \"memfd:pulseaudio\"))\n)\n"
+  min_endpoint_version: "9.1.4"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.006
+              name: Python
+              reference: "https://attack.mitre.org/techniques/T1059/006/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+            - id: T1059.011
+              name: Lua
+              reference: "https://attack.mitre.org/techniques/T1059/011/"
+        - id: T1106
+          name: Native API
+          reference: "https://attack.mitre.org/techniques/T1106/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+          subtechnique:
+            - id: T1055.009
+              name: Proc Memory
+              reference: "https://attack.mitre.org/techniques/T1055/009/"
+        - id: T1620
+          name: Reflective Code Loading
+          reference: "https://attack.mitre.org/techniques/T1620/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "9.1.4"

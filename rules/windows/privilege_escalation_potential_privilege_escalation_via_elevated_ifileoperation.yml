@@ -1,0 +1,55 @@
+id: "8b4791a8-2355-4f43-8b60-d367b5c2aa51_1.0.34"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to elevate privileges by dropping a DLL file via elevated IFileOperation (Rename, Move or Copy)
+    followed by DLL side-loading into a process running with SYSTEM integrity. Attackers may attempt to hijack DLL search
+    order and stealthily execute code with elevated permissions.
+  rule_id: "8b4791a8-2355-4f43-8b60-d367b5c2aa51"
+  license: Elastic License v2
+  name: Potential Privilege Escalation via Elevated IFileOperation
+  os_list:
+    - windows
+  reference:
+    - "https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ifileoperation"
+    - "https://www.elastic.co/security-labs/Hunting-for-Suspicious-Windows-Libraries-for-Execution-and-Evasion"
+  version: "1.0.34"
+  query: "sequence with maxspan=1m\n  [file where event.action in (\"creation\", \"overwrite\", \"rename\", \"modification\") and\n\n   /* IFileOperation are performed by DllHost */\n   process.name : \"dllhost.exe\" and user.id like (\"S-1-5-21*\", \"S-1-12-*\") and\n\n   /* executable file dropped via NewItem, Rename, Move or Copy IFileOperation */\n   (file.extension : \"dll\" or file.Ext.header_bytes : \"4d5a*\") and\n\n   /* protected system paths usually abused via DLL search order hijack */\n   file.path : (\"?:\\\\Windows\\\\system32\\\\*\",\n                \"?:\\\\Windows\\\\syswow64\\\\*\",\n                \"?:\\\\Program Files (x86)\\\\Microsoft\\\\*\",\n                \"?:\\\\Program Files\\\\Microsoft\\\\*\",\n                \"?:\\\\Program Files\\\\Windows *\", \n                \"?:\\\\Program Files (x86)\\\\Windows *\")] by file.path\n  [library where\n   /* non MS signed */\n   process.executable :\n               (\"?:\\\\Windows\\\\system32\\\\*\",\n                \"?:\\\\Windows\\\\syswow64\\\\*\",\n                \"?:\\\\Program Files (x86)\\\\Microsoft\\\\*\",\n                \"?:\\\\Program Files\\\\Microsoft\\\\*\", \n                \"?:\\\\Program Files\\\\Windows *\", \n                \"?:\\\\Program Files (x86)\\\\Windows *\") and\n  not (dll.code_signature.subject_name : \"Microsoft *\" and dll.code_signature.trusted == true) and\n  not startswith~(dll.name, process.name) and\n  not dll.hash.sha256 :\n               (\"5177f7b0d88bf122b2b7e94293513cefee82970d8b5697e12821ccbe091c8e15\",\n                \"108c16cecced0112da8095053c4efce83eeca319bf58f83412f8cf7f124a7dd5\",\n                \"ed9ebcff2f6f28511814e726f701ab759398c3132a7382e28dd7c6ed58d32d90\")] by dll.path\n"
+  min_endpoint_version: "7.16.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1548
+          name: Abuse Elevation Control Mechanism
+          reference: "https://attack.mitre.org/techniques/T1548/"
+          subtechnique:
+            - id: T1548.002
+              name: Bypass User Account Control
+              reference: "https://attack.mitre.org/techniques/T1548/002/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+          subtechnique:
+            - id: T1574.001
+              name: DLL
+              reference: "https://attack.mitre.org/techniques/T1574/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.16.0"

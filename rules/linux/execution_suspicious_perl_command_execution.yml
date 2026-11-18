@@ -1,0 +1,35 @@
+id: "13c404cb-7631-4a33-8b59-5545e9a8a598_1.0.17"
+type: security-rule
+attributes:
+  description: |
+    This rule monitors for suspicious Perl command executions by detecting the start of a Perl process with a command line
+    argument that contains keywords commonly used by attackers to execute malicious code. These command line arguments
+    include operations to execute code, create subprocesses, and encode or decode data.
+  rule_id: "13c404cb-7631-4a33-8b59-5545e9a8a598"
+  license: Elastic License v2
+  name: Suspicious Perl Command Execution
+  os_list:
+    - linux
+  version: "1.0.17"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and\nprocess.executable like (\"/bin/perl*\", \"/usr/bin/perl*\", \"/usr/local/bin/perl*\") and\nprocess.args == \"-e\" and process.command_line like~ (\n  \"*system(*\", \"*exec(*\", \"*IO.popen(*\", \"*Open3.popen3(*\", \"*spawn(*\", \"*eval(*\",\n  \"*load(*IO::*\", \"*load(*Marshal*\", \"*load(*Fiddle*\", \"*load(*Zlib*\", \"*load(*Base64*\",\n  \"*zlib.inflate(*\", \"*zlib.deflate(*\", \"*zlib.decompress(*\", \"*zlib.uncompress(*\", \"*zlib.compress(*\",\n  \"*Marshal.load(*\", \"*Fiddle.dlopen(*\", \"*Fiddle::Function.new(*\", \"*base64*\", \"*zlib*\", \n  \"*net/http*\", \"*socket.new*\", \"*open-uri*\", \"*pack(*\"\n) and not (\n  process.working_directory like~ (\n    \"/builds/*\", \"/root/.perl-cpm/*/MIME-tools-*\", \"/root/.cpan*\", \"/scratch/*\", \"/emulator/snmpAgent/net-snmp*\",\n    \"/data1/Axway/TSIM/is/instances/*\", \"/build/linux-x86_64/__build__/__vmbuild__\"\n  ) or\n  process.command_line like (\n    \"perl -e eval { use MIME::Base64; print 1; }\", \"/home/*/bin/sendEmail*\", \"*transfer fish server*\",\n    \"\"\"perl -e $|=1; print \"### 100 transfer fish server\\n\"; while(<STDIN>) { last if /^__END__/; $code.=$_; } exit(eval($code))\"\"\",\n    \"*base64.h*\", \"*zlib.h*\", \"*/user/*/Programs/agama/py/schwarzlib.py*\", \"/usr/bin/perl -MExtUtils::Command -e mkpath -- blib/lib/auto/Compress/Raw/Zlib\"\n  ) or\n  process.parent.name in (\"make\", \"filter_stderr\") or\n  process.parent.executable like (\n    \"/var/lib/docker/overlay2/*\", \"/usr/local/lp/apps/sonarpush-helpers/spectre-meltdown-checker.sh\",\n    \"/usr/sbin/debootstrap\", \"/usr/bin/xterm\", \"/usr/bin/xargs\", \"/var/lib/dpkg/info/sudo.postinst\", \"/usr/bin/gmake\",\n    \"/usr/bin/gxargs\", \"/home/*/.vscode-server/*/codex\", \"/home/*/.npm-global/*/codex\", \"/usr/local/lib/node_modules/*/codex\", \"/usr/bin/runc\", \n    \"/home/*/.nvm/versions/node/*/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex\"\n  ) or\n  process.parent.command_line like~ (\"*testfun()*\", \"sh -c bash -c testfun*\", \"/usr/bin/perl t/utf8.t\", \"*/usr/sap/.call/_call.localhost.*\") or\n  process.parent.args in (\"/usr/bin/parallel\", \"/usr/sbin/debootstrap\") or\n  (process.working_directory like \"/hana/shared/VN3/*\" and process.command_line like \"perl -e use MIME::Base64; print decode_base64($ARGV[0]*\") or\n  (process.parent.executable like \"/opt/Kaseya/*/tmp/KcsUpdate\" and process.command_line like \"perl -MMIME::Base64 -n -e*\") or\n  process.parent.executable like \"*/.codex/packages/standalone/releases/*/bin/codex\"\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "7.15.0"

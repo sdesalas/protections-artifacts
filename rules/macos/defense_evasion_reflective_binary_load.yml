@@ -1,0 +1,44 @@
+id: "16fba7a9-f8f6-43ce-ae24-6a392a48e49c_1.0.54"
+type: security-rule
+attributes:
+  description: |
+    Detects reflective code loading on macOS through creation of "NSCreateObjectFileImageFromMemory-*" temporary files by
+    suspicious processes. This technique allows malware to execute in-memory Mach-O binaries while evading disk-based
+    detection.
+  rule_id: "16fba7a9-f8f6-43ce-ae24-6a392a48e49c"
+  license: Elastic License v2
+  name: Reflective Binary Load
+  os_list:
+    - macos
+  reference:
+    - "https://slyd0g.medium.com/understanding-and-defending-against-reflective-code-loading-on-macos-e2e83211e48f"
+    - "https://github.com/slyd0g/SwiftInMemoryLoading"
+  version: "1.0.54"
+  query: "file where event.type != \"deletion\" and \n file.name : \"NSCreateObjectFileImageFromMemory-*\" and \n process.name != null and\n process.executable != null and\n ((process.code_signature.trusted == false or process.code_signature.exists == false) or\n  process.name like~ (\"osascript\", \"bash\", \"sh\", \"zsh\", \"node\")) and\n not (process.executable like \"/private/tmp/*\" and process.name == \"osx-x86_64\") and\n not (process.code_signature.exists == true and process.code_signature.trusted == true and process.code_signature.team_id == \"EBNT3ZX97E\") and\n not process.executable like~ \"/private/tmp/PKInstallSandbox.*\" and\n not process.code_signature.signing_id == \"com.steinberg.cubase13\" and\n not Effective_process.executable in (\"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon\",\n                                      \"/Applications/iZotope Product Portal.app/Contents/MacOS/Product Portal\",\n                                      \"/Library/Application Support/Mosyle/MosyleMDM.app/Contents/MacOS/MosyleMDM\",\n                                      \"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfManagementService.app/Contents/MacOS/JamfManagementService\",\n                                      \"/Library/Kandji/Kandji Agent.app/Contents/Helpers/Kandji Library Manager.app/Contents/MacOS/kandji-library-manager\",\n                                      \"/Library/Intune/Microsoft Intune Agent.app/Contents/MacOS/IntuneMdmDaemon\") and\n not Effective_process.executable like \"/usr/local/rippling/*\"\n"
+  min_endpoint_version: "8.11.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1106
+          name: Native API
+          reference: "https://attack.mitre.org/techniques/T1106/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1620
+          name: Reflective Code Loading
+          reference: "https://attack.mitre.org/techniques/T1620/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.11.0"

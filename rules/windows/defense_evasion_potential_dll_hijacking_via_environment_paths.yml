@@ -1,0 +1,39 @@
+id: "971ff66d-a0fe-4fdc-aa74-3cb1a19336f4_1.0.23"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to load an unsigned DLL from Microsoft default environment paths and by a Microsoft signed binary.
+    This may indicate an attempt to elevate privilege or persist via DLL Search Order Hijacking.
+  rule_id: "971ff66d-a0fe-4fdc-aa74-3cb1a19336f4"
+  license: Elastic License v2
+  name: Potential DLL Hijacking via Environment Paths
+  os_list:
+    - windows
+  version: "1.0.23"
+  query: "library where\n\n dll.Ext.relative_file_creation_time <= 900 and\n\n process.code_signature.status : \"trusted\" and process.code_signature.subject_name : \"Microsoft *\" and\n\n not dll.code_signature.status : (\"trusted\", \"errorCode_endpoint*\") and\n\n dll.path :\n   (\"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\*.dll\",\n    \"?:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\*.dll\",\n    \"?:\\\\Windows\\\\System32\\\\wbem\\\\*.dll\",\n    \"?:\\\\Windows\\\\system32\\\\OpenSSH\\\\*.dll\",\n    \"?:\\\\Python??\\\\*\",\n    \"?:\\\\Program Files (x86)\\\\Common Files\\\\Oracle\\\\Java\\\\javapath\\\\*.dll\",\n    \"?:\\\\Program Files\\\\Microsoft SQL Server\\\\*\\\\Tools\\\\Binn\\\\*.dll\",\n    \"?:\\\\Program Files (x86)\\\\Microsoft SQL Server\\\\*\\\\Tools\\\\Binn\\\\*.dll\",\n    \"?:\\\\Program Files\\\\dotnet\\\\*\",\n    \"?:\\\\Program Files\\\\Windows NT\\\\*\",\n    \"?:\\\\Program Files (x86)\\\\Windows NT\\\\*\") and\n\n /* not subdirs */\n not dll.path :\n       (\"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\*\\\\*.dll\",\n        \"?:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\*\\\\*.dll\",\n        \"?:\\\\Windows\\\\System32\\\\wbem\\\\*\\\\*.dll\",\n        \"?:\\\\Windows\\\\system32\\\\OpenSSH\\\\*\\\\*.dll\",\n        \"?:\\\\Python??\\\\*\\\\*\",\n        \"?:\\\\Program Files (x86)\\\\Common Files\\\\Oracle\\\\Java\\\\javapath\\\\*\\\\*.dll\",\n        \"?:\\\\Program Files\\\\Microsoft SQL Server\\\\*\\\\Tools\\\\Binn\\\\*\\\\*.dll\",\n        \"?:\\\\Program Files (x86)\\\\Microsoft SQL Server\\\\*\\\\Tools\\\\Binn\\\\*\\\\*.dll\",\n        \"?:\\\\Program Files\\\\dotnet\\\\*\\\\*\", \n        \"?:\\\\Windows\\\\Microsoft.NET\\\\Framework*\\\\Temporary ASP.NET Files\\\\*\",\n        \"?:\\\\Windows\\\\Sys*\\\\wbem\\\\wbemsvc.dll\",\n        \"?:\\\\Windows\\\\Sys*\\\\wbem\\\\wbemprox.dll\",\n        \"?:\\\\Windows\\\\Sys*\\\\wbem\\\\wmiutils.dll\",\n        \"?:\\\\Windows\\\\Sys*\\\\wbem\\\\mofd.dll\",\n        \"?:\\\\Windows\\\\Sys*\\\\wbem\\\\esscli.dll\",\n        \"?:\\\\Windows\\\\Sys*\\\\wbem\\\\cimwin32.dll\",\n        \"?:\\\\Windows\\\\System32\\\\wbem\\\\MDMSettingsProv.dll\") and\n\n /* not DLL loaded from the process.executable current directory - except windir and subdirs */\n not (endswith~(substring(dll.path, 0, length(dll.path) - (length(dll.name) + 1)), substring(process.executable, 0, length(process.executable) - (length(process.name) + 1))) and\n      not dll.path : (\"?:\\\\Windows\\\\*.dll\", \"?:\\\\Program Files*\\\\Windows NT\\\\*\")) and\n /* https://github.com/valinet/ExplorerPatcher/wiki/Antivirus-false-positives */\n not (process.name : \"explorer.exe\" and dll.pe.imphash : \"caebca4526b1331e2458f507d6ef4838\" and\n      dll.pe.original_file_name : \"ExplorerPatcher.dll\") and \n not (dll.pe.original_file_name : \"Radeon Settings Host Service\" and dll.path : \"?:\\\\Windows\\\\System32\\\\amdihk64.dll\") and \n not dll.path regex~ \"\"\"(c:\\\\windows\\\\system32\\\\hp[a-z0-9\\-\\_\\.]+\\.dll|c:\\\\windows\\\\syswow64\\\\hp[a-z0-9\\-\\_\\.]+\\.dll)\"\"\" and \n not process.executable : \n               (\"?:\\\\Windows\\\\SysWOW64\\\\regsvr32.exe\", \n                \"?:\\\\Windows\\\\system32\\\\regsvr32.exe\", \n                \"?:\\\\Windows\\\\SysWOW64\\\\rundll32.exe\", \n                \"?:\\\\Windows\\\\system32\\\\rundll32.exe\",\n                \"?:\\\\Windows\\\\SysWOW64\\\\msiexec.exe\", \n                \"?:\\\\Windows\\\\system32\\\\msiexec.exe\", \n                \"?:\\\\Windows\\\\System32\\\\spoolsv.exe\") and \n not dll.hash.sha256 : \n              (\"fc96ee3fad0edf3f26b6ba118a4fad919eefefa478996f3cee9c28e274c8130f\", \n               \"2392414a18bfdd146cb55d4e865809f2dac35f857b9bff20a939da94876fb9eb\", \n               \"a1fe9948e692b1fa2ebba3c3d6fb2b88f7d97b418398369ad3865418c4e3cb88\", \n               \"90a88986c8c5f30fb153ec803feda6572b2c2630a6c9578fcc017800692694d5\", \n               \"db9cdc52afb49ae408f5f7e6f3213615a25c16ad6ea56f7caf51c62ea548e8e5\", \n               \"da2d6ff6aa7b28aa5d8e1b9c1f1af9221b929741761a72b965911c97c338fa8f\", \n               \"a1628b28eb62fada7cd068557c2df466097f05d2de828c34c3d0eb6705c05821\", \n               \"da2d6ff6aa7b28aa5d8e1b9c1f1af9221b929741761a72b965911c97c338fa8f\", \n               \"e416f3765be8358eb2fe789c8f9033bbbeda952ce6a36a350d403e2f07b963f8\",\n               \"ca70262f22d519dc152f9d93db7fe704b2c57517b137d557effca6ba65e4de70\")\n"
+  min_endpoint_version: "8.10.0"
+  reputation: true
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+          subtechnique:
+            - id: T1574.001
+              name: DLL
+              reference: "https://attack.mitre.org/techniques/T1574/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

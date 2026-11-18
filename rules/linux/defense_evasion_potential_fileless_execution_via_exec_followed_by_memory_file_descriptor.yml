@@ -1,0 +1,60 @@
+id: "8f563c66-4488-4f12-85ea-fb22ac367c05_1.0.9"
+type: security-rule
+attributes:
+  description: |
+    This rule detects when a process executes a file followed by creating an in-memory file using the memfd_create syscall.
+    This activity indicates an active attempt to execute a fileless payload and should be considered highly abnormal or
+    suspicious. This activity can occur when the memfd syscall is utilized to create a memory resident file, like a payload,
+    and then uses it to execute a process via a command and control channel, resulting in an exec event.
+  rule_id: "8f563c66-4488-4f12-85ea-fb22ac367c05"
+  license: Elastic License v2
+  name: Potential Fileless Execution via Exec Followed by Memory File Descriptor
+  os_list:
+    - linux
+  reference:
+    - "https://man7.org/linux/man-pages/man2/memfd_create.2.html"
+  version: "1.0.9"
+  query: "sequence by process.entity_id with maxspan=5s\n  [process where event.type == \"start\" and event.action == \"exec\" and process.parent.executable != null and\n  process.interactive == true and process.executable like (\n    \"memfd:*\", \"?memfd:*\", \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/run/user/*\", \"/var/run/user/*\", \"/boot/*\",\n    \"/sys/*\", \"/lost+found/*\", \"/proc/*\", \"/var/mail/*\", \"*(deleted)*\"\n  ) and\n  not (\n    process.parent.command_line like (\"buildah-chroot-runtime\", \"*/home/*/.claude/shell-snapshots/snapshot-*\") or\n    process.command_line == \"buildah-chroot-runtime\" or\n    process.args == \"/usr/bin/crun\" or\n    process.executable like (\n      \"/tmp/.*/.vscode-server/cli/servers/*/server/node_modules/@vscode/vsce-sign/bin/vsce-sign\", \"/tmp/.mount_*\", \"/tmp/go-build*\",\n      \"/tmp/.tmp*/.vscode-server/bin/*/node_modules/@vscode/vsce-sign/bin/vsce-sign\", \"/var/tmp/portage/*\",\n      \"/tmp/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell\",\n      \"/tmp/appimage_extracted_*/usr/bin/PDW_GCS\", \"/tmp/radarr_update/Radarr.Update\", \"/tmp/prowlarr_update/Prowlarr.Update\",\n      \"/tmp/buildpacks/*_buildpack-nodejs/lib/vendor/yq-*-linux\", \"memfd:lxc-attach\", \"/tmp/claude-*/*\",\n      \"/tmp/*-vscode/.vscode-server/bin/*/node_modules/@vscode/vsce-sign/bin/vsce-sign\", \"/tmp/clearpass-onguard-*\", \n      \"/tmp/*/vibex\", \"/tmp/dotnet-sdk/dotnet\", \"/tmp/dotnet-tools/sqlpackage\", \"/tmp/pub-plain/LabPlatform.Api\", \n      \"/tmp/j9/bin/Release/*/j9\", \"/tmp/clean-head/q/bin/*/q\", \"/tmp/tools/ilspycmd\", \"/tmp/ilspy/ilspycmd\"\n    ) or\n    process.parent.executable in (\n      \"/usr/libexec/nordlayer/nordlayer-resolvconf\", \"/usr/bin/gnome-shell\", \"./runc\", \"/usr/bin/make\", \"/usr/bin/sudo\",\n      \"/usr/bin/timeout\", \"/usr/local/bin/ctest\", \"/usr/lib64/dotnet/dotnet\", \"/tmp/dotnet-sdk/dotnet\"\n    ) or\n    process.parent.executable like (\n      \"/tmp/.tmp*/.vscode-server/bin/*/node\", \"/usr/bin/nordlayer\", \"/root/.vscode-server/cli/servers/*/server/node\",\n      \"/vscode/vscode-server/bin/*/node\", \"/tmp/vscode-*/server/node\", \"/root/.npm/_npx/*/node_modules/bun/bin/bun.exe\",\n      \"/home/*/.dotnet/dotnet\", \"/home/*/.*-code/bin/codex\", \"/home/*/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo\",\n      \"/opt/micromamba/bin/python*\", \"/root/.vscode/cli/servers/*/node\", \"/root/actions-runner/externals.*/bin/node\", \"/tmp/*.AppImage\",\n      \"/home/*/.codex/packages/standalone/releases/*/bin/codex\"\n    ) or\n    (\n      process.executable == \"memfd:lxc-attach\" and\n      process.parent.executable == \"/usr/lib/openssh/sshd-session\"\n    )\n  )]\n  [process where event.type == \"start\" and event.action == \"memfd_create\"]\n"
+  min_endpoint_version: "9.1.4"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1106
+          name: Native API
+          reference: "https://attack.mitre.org/techniques/T1106/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+          subtechnique:
+            - id: T1055.009
+              name: Proc Memory
+              reference: "https://attack.mitre.org/techniques/T1055/009/"
+        - id: T1620
+          name: Reflective Code Loading
+          reference: "https://attack.mitre.org/techniques/T1620/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "9.1.4"

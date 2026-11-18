@@ -1,0 +1,36 @@
+id: "10d1d07c-1301-4fed-b584-eb0878a74dc7_1.0.4"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempt to call API to modify a kernel mode address from a user mode process. This may indicate a successful
+    vulnerability exploitation for privilege escalation.
+  rule_id: "10d1d07c-1301-4fed-b584-eb0878a74dc7"
+  license: Elastic License v2
+  name: Suspicious Kernel Mode Address Manipulation
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/itw-windows-lpe-0days-insights-and-detection-strategies"
+  version: "1.0.4"
+  query: "api where process.pid != 4 and process.executable != null and \n /*  kernel mode address range */\n process.Ext.api.parameters.address > 281474976710655 and \n process.Ext.api.name : (\"WriteProcessMemory\", \"VirtualProtect*\", \"VirtualAlloc*\", \"NtQueueApcThread\", \"QueueUserAPC\", \"MapViewOfFile*\") and\n not (process.Ext.api.name : \"VirtualProtect*\" and user.id : \"s-1-5-18\" and\n      process.executable : (\"?:\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\Platform\\\\*\\\\MsMpEng.exe\",\n                            \"?:\\\\Program Files\\\\Microsoft Security Client\\\\MsMpEng.exe\",\n                            \"?:\\\\Program Files\\\\Windows Defender\\\\MsMpEng.exe\"))\n"
+  min_endpoint_version: "8.8.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1068
+          name: Exploitation for Privilege Escalation
+          reference: "https://attack.mitre.org/techniques/T1068/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.8.0"

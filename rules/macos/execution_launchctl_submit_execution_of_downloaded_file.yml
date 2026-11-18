@@ -1,0 +1,38 @@
+id: "6b950b18-a6b4-465c-876b-e9536b282471_1.0.1"
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of a recently downloaded file via launchctl submit. Adversaries may download payloads with curl
+    or wget and register them as transient launchd jobs in order to execute them in the background.
+  rule_id: "6b950b18-a6b4-465c-876b-e9536b282471"
+  license: Elastic License v2
+  name: Launchctl Submit Execution of Downloaded File
+  os_list:
+    - macos
+  version: "1.0.1"
+  query: "sequence with maxspan=1m\n  [process where event.type == \"start\" and event.action == \"exec\" and \n   process.name in (\"curl\", \"nscurl\", \"wget\") and process.command_line like \"*http*\"] as event0\n  [file where event.action != \"deletion\" and process.name in (\"curl\", \"nscurl\", \"wget\") and \n   process.entity_id == event0.process.entity_id] as event1\n  [process where event.type == \"start\" and event.action == \"exec\" and\n    process.name == \"launchctl\" and process.args == \"submit\" and process.args == \"-l\" and\n    stringcontains~(process.command_line, event1.file.name)]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 2
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 2
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1569
+          name: System Services
+          reference: "https://attack.mitre.org/techniques/T1569/"
+          subtechnique:
+            - id: T1569.001
+              name: Launchctl
+              reference: "https://attack.mitre.org/techniques/T1569/001/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.16.0"

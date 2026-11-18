@@ -1,0 +1,44 @@
+id: "530ad3d7-7360-4467-83d3-f49d705535ba_1.0.6"
+type: security-rule
+attributes:
+  description: |
+    Detects a process execution followed by immediate self-deletion, a common technique used by adversaries to remove traces
+    of their activity on the system. This pattern is often observed in malware and APT campaigns.
+  rule_id: "530ad3d7-7360-4467-83d3-f49d705535ba"
+  license: Elastic License v2
+  name: Process Execution Followed by Self-Deletion
+  os_list:
+    - linux
+  version: "1.0.6"
+  query: "sequence by process.entity_id with maxspan=15s\n  [process where event.type == \"start\" and event.action == \"exec\" and \n  process.executable like (\"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/run/user/*\", \"/var/run/user/*\") and\n  not (\n    process.parent.executable like (\"/usr/openv/netbackup/bin/bpcd\", \"/usr/bin/x-terminal-emulator\") or\n    process.executable like (\n      \"/tmp/VeeamAgent*\", \"/tmp/VeeamApp_*\", \"/tmp/par-*\", \"/tmp/newroot/home/*/.local/bin/kiro-cli\",\n      \"/tmp/.dropbox-dist-new-*/dropbox\", \"/tmp/builds/*/node_modules/.bin/rimraf\", \"/var/tmp/*/conftest\",\n      \"/tmp/cmdickens/*\", \"/tmp/newroot/home/*/studio3t/jre/bin/java\",\n      \"/tmp/newroot/opt/docker/buildkit/executor/*/rootfs/usr/bin/dpkg\", \"/tmp/newroot/opt/orbit/bin/orbit/orbit\",\n      \"/tmp/*/conftest\", \"/tmp/thangha/easybuild/netCDF/*\", \"/tmp/baum/easybuild/LLVM/*\", \"/tmp/*/easybuild/*\",\n      \"/tmp/root/spack-stage/*\", \"/tmp/plz_sandbox/test\", \"/tmp/par_tmp.*\", \"/tmp/github-runner-*/_actions/*/apt_query-x86\",\n      \"/tmp/.dropbox-dist-new-*/.dropbox-dist/dropbox-*/dropboxd\", \"/tmp/deinstall*/perl/bin/perl\"\n    ) or\n    process.parent.args like (\"/usr/sbin/weak-modules\", \"apt-get\", \"/tmp/thangha/easybuild/*\") or\n    process.parent.command_line == \"/opt/Elastic/Agent/elastic-agent\" or\n    (process.executable == \"/tmp/newroot/newroot/opt/Elastic/Agent/elastic-agent\" and process.parent.executable == \"/tmp/newroot/newroot/lib/systemd/systemd\")\n  )] as event0\n  [file where event.action == \"deletion\" and startswith~(file.path, event0.process.executable) and endswith~(file.path, event0.process.executable)]\n"
+  min_endpoint_version: "8.6.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1070
+          name: Indicator Removal
+          reference: "https://attack.mitre.org/techniques/T1070/"
+          subtechnique:
+            - id: T1070.004
+              name: File Deletion
+              reference: "https://attack.mitre.org/techniques/T1070/004/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.6.0"

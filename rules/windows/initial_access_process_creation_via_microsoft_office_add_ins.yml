@@ -1,0 +1,52 @@
+id: b9956c53-30e1-4c13-b75f-addb3a032f83_1.0.21
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of Microsoft Office child process as a result of a load Office Add-In. Adversaries may leverage
+    malicious Microsoft Office Add-Ins for initial access and execution.
+  rule_id: b9956c53-30e1-4c13-b75f-addb3a032f83
+  license: Elastic License v2
+  name: Process Creation via Microsoft Office Add-Ins
+  os_list:
+    - windows
+  reference:
+    - "https://github.com/Octoberfest7/XLL_Phishing"
+    - "https://www.mdsec.co.uk/2019/05/persistence-the-continued-or-prolonged-existence-of-something-part-1-microsoft-office/"
+    - "https://www.elastic.co/security-labs/upping-the-ante-detecting-in-memory-threats-with-kernel-call-stacks"
+  version: "1.0.21"
+  query: "process where event.action == \"start\" and\n process.parent.name : (\"winword.exe\", \"excel.exe\") and\n _arraysearch(process.parent.thread.Ext.call_stack, $entry,\n              $entry.symbol_info :\n                               (\"*!xlAutoOpen*\", \"*!wlAutoOpen*\", \"*!wdAutoOpen*\", \"?:\\\\Users\\\\*\\\\Microsoft\\\\Word\\\\STARTUP\\\\*\",\n\t                            \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\Microsoft\\\\AddIns\\\\*\",\n\t                            \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\Microsoft\\\\Excel\\\\XLSTART\\\\*\")) and\n not (process.code_signature.subject_name : \"FactSet Research Systems Inc.\" and process.code_signature.trusted == true) and \n not process.executable : \"?:\\\\Windows\\\\splwow64.exe\" and \n not process.hash.sha256 : \"b52ee82c7e579fd73abc31c368462df9d99c6623be91526ee150706286dc19ee\" and\n not (process.parent.name : \"Excel.exe\" and process.name : \"csc.exe\" and\n      process.parent.args : \"https://*.sharepoint.com/sites/*\" and process.parent.args : \"/cid\")\n"
+  min_endpoint_version: "8.7.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1137
+          name: Office Application Startup
+          reference: "https://attack.mitre.org/techniques/T1137/"
+          subtechnique:
+            - id: T1137.006
+              name: Add-ins
+              reference: "https://attack.mitre.org/techniques/T1137/006/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "8.7.0"

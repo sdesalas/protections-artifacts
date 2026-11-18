@@ -1,0 +1,37 @@
+id: "13dadee2-f4b8-4877-8b9c-37ce59f82432_1.0.13"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to create a child process from a memory section with read, write and execute permissions and backed
+    by a file on disk. This may indicate image hollowing or unpacking from suspicious memory sections.
+  rule_id: "13dadee2-f4b8-4877-8b9c-37ce59f82432"
+  license: Elastic License v2
+  name: Process Creation from Backed RWX Memory
+  os_list:
+    - windows
+  version: "1.0.13"
+  query: "sequence with maxspan=1m\n [process where event.action == \"start\" and\n  (\n   process.name : (\"rundll32.exe\", \"regsvr32.exe\") or\n   (process.Ext.relative_file_creation_time <= 300 and not process.code_signature.status : (\"trusted\", \"errorExpired\", \"errorCode_endpoint*\") and\n    process.executable : (\"?:\\\\Users\\\\*\", \"?:\\\\ProgramData\\\\*\")) or\n   (process.Ext.device.product_id : (\"Virtual DVD-ROM\", \"Virtual Disk\",\"USB *\") and not process.executable : \"C:\\\\*\") or\n   process.executable : (\"?:\\\\Users\\\\Public\\\\*\",\n                         \"?:\\\\Users\\\\*\\\\Downloads\\\\*\",\n                         \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\7z*\\\\\",\n                         \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\Rar$*\\\\*\",\n                         \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\Temp?_*\\\\*\",\n                         \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\BNZ.*\")\n  ) and \n  process.hash.sha256 != null and \n  not process.executable : \n                (\"?:\\\\Windows\\\\Installer\\\\MSI*.tmp\", \n                 \"?:\\\\Program Files\\\\*.exe\", \n                 \"?:\\\\Program Files (x86)\\\\*.exe\", \n                 \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\_ir_sf*_temp_*\\\\irsetup.exe\", \n                 \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\~nsuA.tmp\\\\*.exe\",\n                 \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\INS*.tmp\") and\n  not process.hash.sha256 : \n               (\"9ad4c8d68a26f6feb2287e9d9895358a5a560ecc34cb3649edade01b054e1dd5\", \n                \"aaa782279126c5e78dda4ab68e1d9f2da2d4b87b183b9ed24546637d25e5d3c6\", \n                \"80be4152f9bdb4631ec7f12da1dc8dae1037b340753a1552c3e4cd8dfdd05d2d\", \n                \"2cd1b00947abe2df2cba3997d7bdd5a9043ebe598987f0e9cade0aceb73f9edd\",\n                \"c15f1490506641b2e93239830d4707074d4690e947138df86a61c82a29cf4230\",\n                \"e95b57c5a9decfa6ad11b187172c61a3c480ff26c6520ae8251f97e868e3e9a6\",\n                \"805190b03fe6179269e536f3be50a2432466af2716cd931e50ffcfffb910fd9d\",\n                \"2eae330562f3eaa5d889b58cac5e7e14757cea683b03c9850cf6ca99abe557f8\",\n                \"67b2c31ad5c94d5d3a2e9380a66393551dfb6498889952e968437bca306a1eba\",\n                \"f840099459d5780f2a8f637f96b1656f84473a2bb6ddf6600aad8c9b31a797c7\") and\n  not process.parent.thread.Ext.call_stack_summary : \"*|python*.dll|*\" and\n  not (process.code_signature.status : (\"trusted\", \"errorExpired\") and process.executable : \"?:\\\\Users\\\\*\\\\Downloads\\\\*\") and\n  not process.pe.original_file_name : \"python.exe\"] by process.entity_id\n [process where event.action == \"start\" and\n  not process.parent.thread.Ext.call_stack_contains_unbacked == true and\n  process.parent.thread.Ext.call_stack_summary : \"?*\" and \n  not process.executable : \"?:\\\\Program Files\\\\AutoHotkey\\\\UX\\\\AutoHotkeyUX.exe\" and \n  not process.parent.thread.Ext.call_stack_summary : (\"*Unbacked*\", \"*clr.dll*\", \"*Unknown*\") and\n  (\n   _arraysearch(process.parent.thread.Ext.call_stack, $entry, $entry.protection : \"RWX\" and startswith~($entry.symbol_info, process.parent.executable)) or\n   _arraysearch(process.parent.thread.Ext.call_stack, $entry,\n               $entry.protection : \"RWX\" and  $entry.symbol_info : \"?:\\\\*\" and\n               not $entry.symbol_info : (\"?:\\\\Program Files*\", \"?:\\\\Windows\\\\*\", \"?:*\\\\isrt.dll*\", \"?:*\\\\ISSetup.dll*\"))\n  ) and\n  not _arraysearch(process.parent.thread.Ext.call_stack, $entry, $entry.protection : \"RWX\" and $entry.symbol_info : (\"?:\\\\Windows\\\\*\", \"?:\\\\Program Files*\", \"*.exe!*\", \"*.exe+*\")) and\n  not process.parent.thread.Ext.call_stack_summary : (\"*|python*.dll|*\", \"*|isrt.dll*\", \"|issetup.dll*\") and \n  not _arraysearch(process.parent.thread.Ext.call_stack, $entry, $entry.callsite_trailing_bytes : (\"85c00f8?a6000000*\", \"8d45f253508*\", \"8b4df464890d*\", \"6a006890751*\"))\n  ] by process.parent.entity_id\n"
+  min_endpoint_version: "8.8.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.8.0"

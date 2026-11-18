@@ -1,0 +1,37 @@
+id: fae9f554-d3bc-4d48-8863-54d0dd68db54_1.0.23
+type: security-rule
+attributes:
+  description: |
+    Identifies the load of library from via a callback function. This may be the result of an evasion attempt to hide the
+    origin of the LoadLibrary call from the call stack.
+  rule_id: fae9f554-d3bc-4d48-8863-54d0dd68db54
+  license: Elastic License v2
+  name: Library Loaded via a CallBack Function
+  os_list:
+    - windows
+  reference:
+    - "https://malpedia.caad.fkie.fraunhofer.de/details/win.nighthawk"
+    - "https://www.elastic.co/security-labs/upping-the-ante-detecting-in-memory-threats-with-kernel-call-stacks"
+  version: "1.0.23"
+  query: "sequence by process.entity_id \n [process where event.action == \"start\"]\n [library where \n (\n  ((dll.Ext.relative_file_creation_time <= 300 or\n    (dll.Ext.device.product_id : (\"Virtual DVD-ROM\", \"Virtual Disk\") and not dll.path : \"C:\\\\*\")) and\n   (dll.code_signature.trusted == false or dll.code_signature.exists == false)) or \n  \n   dll.name in~ (\"vaultcli.dll\", \"wmiutils.dll\", \"taskschd.dll\", \"dnsapi.dll\", \"dsquery.dll\", \n              \"mstask.dll\", \"mstscax.dll\", \"sqlite3.dll\", \"clr.dll\", \"coreclr.dll\", \"ws2_32.dll\", \n              \"wininet.dll\", \"dnsapi.dll\", \"winhttp.dll\", \"psapi.dll\", \"bitsproxy.dll\", \"softokn3.dll\", \n              \"System.Management.Automation.dll\", \"Wldap32.dll\")\n ) and \n\n process.thread.Ext.call_stack_summary in \n                (\"ntdll.dll|kernelbase.dll|ntdll.dll|kernel32.dll|ntdll.dll\", \n                 \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|ntdll.dll|kernel32.dll|ntdll.dll\") and\n not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info like \"C:\\\\Windows\\\\Sys?????\\\\ntdll.dll!KiUserApcDispatcher*\")\n ]\n until [process where event.action == \"end\"]\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.7.0"

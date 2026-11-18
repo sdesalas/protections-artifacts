@@ -1,0 +1,57 @@
+id: "13fd98ce-f1c3-423f-9441-45c50eb462c0_1.0.11"
+type: security-rule
+attributes:
+  description: |
+    Detects the execution of the VScode portable binary with the tunnel command line option indicating an attempt to
+    establish a remote tunnel session to Github or a remote VScode instance.
+  rule_id: "13fd98ce-f1c3-423f-9441-45c50eb462c0"
+  license: Elastic License v2
+  name: Attempt to establish VScode Remote Tunnel
+  os_list:
+    - macos
+    - windows
+  reference:
+    - "https://badoption.eu/blog/2023/01/31/code_c2.html"
+  version: "1.0.11"
+  query: "process where event.type == \"start\" and event.action in (\"exec\", \"start\") and \n process.name : (\"code\", \"code.exe\") and process.args : \"tunnel\" and \n not (process.name : \"code-tunnel*.exe\" and process.args  : (\"status\", \"--log-to-file\"))\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.001
+              name: PowerShell
+              reference: "https://attack.mitre.org/techniques/T1059/001/"
+            - id: T1059.003
+              name: Windows Command Shell
+              reference: "https://attack.mitre.org/techniques/T1059/003/"
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1102
+          name: Web Service
+          reference: "https://attack.mitre.org/techniques/T1102/"
+          subtechnique:
+            - id: T1102.002
+              name: Bidirectional Communication
+              reference: "https://attack.mitre.org/techniques/T1102/002/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

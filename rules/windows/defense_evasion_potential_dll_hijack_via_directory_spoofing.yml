@@ -1,0 +1,40 @@
+id: "4c0b962c-b46c-4ac3-9f20-a1cf44ec8fdc_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempt to perform DLL hijacking using System32 executables or others in non-user-writable folders by
+    spoofing the the directory from which the application is loaded to an arbitrary user-specified one.
+  rule_id: "4c0b962c-b46c-4ac3-9f20-a1cf44ec8fdc"
+  license: Elastic License v2
+  name: Potential DLL Hijack via Directory Spoofing
+  os_list:
+    - windows
+  reference:
+    - "https://github.com/Octoberfest7/DropSpawn_BOF"
+  version: "1.0.5"
+  query: "sequence by process.entity_id with maxspan=1m\n [process where event.action == \"start\" and\n  _arraysearch(process.parent.thread.Ext.call_stack, $entry, $entry.symbol_info: \"*RtlCreateUserProcessEx*\") and \n  process.parent.thread.Ext.call_stack_summary : \"ntdll.dll*\" and \n  not process.parent.thread.Ext.call_stack_summary : (\"*kernel32*\", \"*kernelbase*\", \"ntdll.dll|smss.exe|ntdll.dll\") and \n  not _arraysearch(process.parent.thread.Ext.call_stack, $entry, $entry.symbol_info: \"*RtlCloneUserProcess*\")]\n [library where not dll.code_signature.status : \"trusted\" and not startswith~(dll.name, process.name) and \n  process.thread.Ext.call_stack_summary : \"ntdll.dll|kernel32.dll|ntdll.dll\" and \n  not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: (\"*LdrLoadDll*\", \"*LoadLibrary*\")) and \n  not dll.path : \n          (\"?:\\\\Windows\\\\System32\\\\*\", \n           \"?:\\\\Windows\\\\SysWOW64\\\\*\", \n           \"?:\\\\Windows\\\\WinSxS\\\\*\", \n           \"?:\\\\Windows\\\\assembly\\\\*\", \n           \"?:\\\\Windows\\\\assembly\\\\NativeImages_v*\", \n           \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\*\", \n           \"?:\\\\Program Files\\\\*\", \n           \"?:\\\\Program Files (x86)\\\\*\") and \n  /* DLL not loaded from the process.executable current directory */\n\tnot endswith~(substring(dll.path, 0, length(dll.path) - (length(dll.name) + 1)), substring(process.executable, 0, length(process.executable) - (length(process.name) + 1)))]\n"
+  min_endpoint_version: "8.8.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+          subtechnique:
+            - id: T1574.001
+              name: DLL
+              reference: "https://attack.mitre.org/techniques/T1574/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.8.0"

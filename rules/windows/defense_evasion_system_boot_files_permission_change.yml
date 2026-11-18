@@ -1,0 +1,51 @@
+id: "8b32486f-4a3b-4e2b-afca-a02db8185e50_1.0.3"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to change file ownership of system boot critical files. Adversaries may modify file or directory
+    ownership to evade access control lists (ACLs) and access protected files.
+  rule_id: "8b32486f-4a3b-4e2b-afca-a02db8185e50"
+  license: Elastic License v2
+  name: System Boot Files Permission Change
+  os_list:
+    - windows
+  reference:
+    - "https://attack.mitre.org/techniques/T1222/001/"
+  version: "1.0.3"
+  query: |
+    process where event.action == "start" and
+      (
+       ((process.name : "icacls.exe" or process.pe.original_file_name  == "iCACLS.EXE") and (process.args : "/reset" or (process.args : "/grant" and process.args : "Everyone:F"))) or
+       ((process.name : "takeown.exe" or process.pe.original_file_name == "takeown.exe") and process.args : "/f")
+       ) and
+       process.command_line : ("*winload.exe*", "*winload.efi*", "*ntoskrnl.exe*", "*bootmgr*")
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1222
+          name: File and Directory Permissions Modification
+          reference: "https://attack.mitre.org/techniques/T1222/"
+          subtechnique:
+            - id: T1222.001
+              name: Windows File and Directory Permissions Modification
+              reference: "https://attack.mitre.org/techniques/T1222/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

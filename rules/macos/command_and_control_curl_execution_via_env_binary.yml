@@ -1,0 +1,34 @@
+id: "6fbfa489-517a-4b1a-ada6-e88da2012e7b_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    Detects when curl is executed via the env binary. This is a common technique used by adversaries to avoid standard curl
+    focused detections.
+  rule_id: "6fbfa489-517a-4b1a-ada6-e88da2012e7b"
+  license: Elastic License v2
+  name: Curl Execution via Env Binary
+  os_list:
+    - macos
+  version: "1.0.8"
+  query: "sequence by process.parent.entity_id with maxspan=30s\n[process where event.type == \"start\" and process.name == \"env\" and \n  process.args == \"-c\" and process.args like~ (\"*curl*\", \"*nscurl*\")]\n[process where event.type == \"start\" and \n  process.name in (\"bash\", \"sh\", \"zsh\") and\n  process.args == \"-c\" and process.args like~ (\"*curl*\", \"*nscurl*\")]\n[process where event.type == \"start\" and process.name in (\"curl\", \"nscurl\") and\n  not process.parent.executable like (\"/Library/Developer/*\", \"/opt/homebrew/Cellar/*\", \"/Applications/Xcode.app/Contents/Developer/usr/bin/make\")]\n"
+  min_endpoint_version: "8.5.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 2
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.5.0"

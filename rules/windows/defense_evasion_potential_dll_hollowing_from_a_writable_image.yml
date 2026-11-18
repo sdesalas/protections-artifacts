@@ -1,0 +1,45 @@
+id: "9d0b29fc-df7a-4ebb-b082-3d6579193beb_1.0.4"
+type: security-rule
+attributes:
+  description: Identifies attempts to stealthily execute malicious code using DLL hollowing technique from a writable image.
+  rule_id: "9d0b29fc-df7a-4ebb-b082-3d6579193beb"
+  license: Elastic License v2
+  name: Potential DLL Hollowing from a Writable Image
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/blog/process-ghosting-a-new-executable-image-tampering-attack"
+  version: "1.0.4"
+  query: |
+    library where
+      dll.Ext.defense_evasions : "Process Tampering: Image is writable" and
+      dll.Ext.defense_evasions : "Process Tampering: Image has write sharing" and
+      dll.Ext.defense_evasions : "Process Tampering: Image has been accessed before mapping"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+        - id: T1211
+          name: Exploitation for Defense Evasion
+          reference: "https://attack.mitre.org/techniques/T1211/"
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.7.0"

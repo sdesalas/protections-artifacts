@@ -12,9 +12,41 @@ Below you will find the artifacts we have opened in this repository:
 
 | Folder | Description |
 | ------ | ----------- |
-| [`behavior/`](behavior/) | EQL based malicious behavior rules |
-| [`yara/`](yara) | Yara rules for malware protection |
-| [`ransomware/`](ransomware/) | Elastic ransomware protection artifact  |
+| [`src/behavior/`](src/behavior/) | EQL based malicious behavior rules, as TOML (the source of the rules library) |
+| [`rules/`](rules/) | The behavior rules as a rules library: one YAML file per rule, generated from `src/behavior/` |
+| [`src/yara/`](src/yara) | Yara rules for malware protection |
+| [`src/ransomware/`](src/ransomware/) | Elastic ransomware protection artifact  |
+| [`scripts/`](scripts/) | Tooling that builds `rules/` from `src/behavior/` |
+
+# Rules library
+
+`rules/` holds the behavior rules in the layout of a rule library, so a consumer can read them like any other
+library of prebuilt rules.
+
+```
+rules/
+  windows/<rule file name>.yml
+  linux/<rule file name>.yml
+  macos/<rule file name>.yml
+  cross-platform/<rule file name>.yml
+scripts/
+  convert_rules.py                 rebuilds rules/ from src/behavior/rules/
+```
+
+- Every folder under `rules/` holds rule files, and only those. The folder is the one the rule has in `src/behavior/rules/`.
+- Each file holds one rule as `{ id, type: "security-rule", attributes }`. `id` is `<rule_id>_<version>`.
+  `attributes` has the fields of the TOML file: the `[rule]` table with `id` renamed to `rule_id`, plus `actions`,
+  `threat` and `internal`.
+- Keys keep the order of the TOML file, multi-line fields (`description`, `query`) are literal blocks, and the data is identical to the
+  TOML when parsed.
+- `rules/` is generated. Edit the TOML under `src/behavior/` and rebuild.
+
+```sh
+python3 scripts/convert_rules.py
+```
+
+Python 3.11 or newer, standard library only. The script reports rule ids that appear in more than one file; a few
+rules have a `cross-platform/` and a `macos/` variant with the same id and version.
 
 # Questions? Problems? Suggestions?
 

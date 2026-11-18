@@ -1,0 +1,50 @@
+id: fcc42a61-4507-4918-867b-d673e5b065dc_1.0.11
+type: security-rule
+attributes:
+  description: |
+    This rule detects the execution of a process with potential mining pool commandline arguments. Adversaries may leverage
+    the resources of compromised systems to mine cryptocurrency, to generate revenue. This activity may impact system
+    performance and availability.
+  rule_id: fcc42a61-4507-4918-867b-d673e5b065dc
+  license: Elastic License v2
+  name: Potential Mining Pool Command Detection
+  os_list:
+    - linux
+  reference:
+    - "https://falco.org/blog/falco-detect-cryptomining/"
+  version: "1.0.11"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.executable != null and (\n  process.name like (\n    \"telnet.netkit\", \"ping\", \"telnet\", \"xmrig\", \"dash\", \"bash\", \"sh\", \"zsh\", \"ash\", \"fish\", \"ksh\", \"tcsh\",\n    \"csh\", \"nohup\", \"pgrep\", \"python*\", \"perl*\", \"ruby*\", \"php*\", \"lua*\", \"sed\", \"pkill\", \"docker\", \"dig\",\n    \"nslookup\", \"inetutils-telnet\", \"nc\", \"ncat\", \"netcat\", \"netcat.openbsd\", \"netcat.traditional\", \"nc.openbsd\",\n    \"nc.traditional\", \"curl\", \"wget\", \"sudo\", \"grep\", \".*\"\n  ) or\n  process.executable like (\n    \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/boot/*\", \"./*\", \"/sys/*\", \"/lost+found/*\", \"/media/*\", \"/proc/*\",\n    \"/var/backups/*\", \"/var/log/*\", \"/var/mail/*\", \"/var/spool/*\"\n  )\n) and\nprocess.command_line like (\n  \"*cnpool.cc*\", \"*lindon-pool.win*\", \"*supportxmr.com*\", \"*comgandalph3000.com*\", \"*minergate.com*\",\n  \"*fjhan.club*\", \"*emercoin.com*\", \"*poolto.be*\", \"*520fjh.org*\", \"*xmrpool.xyz*\", \"*simka.pw*\", \"*noobxmr.com*\",\n  \"*miner.rocks*\", \"*minerpool.pw*\", \"*minemonero.gq*\", \"*usxmrpool.com*\", \"*moneroocean.stream*\", \"*mypool.online*\",\n  \"*xmrpool.de*\", \"*emergate.net*\", \"*ip28.net*\", \"*mine.bz*\", \"*dwarfpool.com*\", \"*xmrig.com*\", \"*koto-pool.work*\",\n  \"*monerorx.com*\", \"*zarabotaibitok.ru*\", \"*mining-help.ru*\", \"*mine2gether.com*\", \"*moneropool.com*\", \"*viaxmr.com*\",\n  \"*minerrocks.com*\", \"*miningpoolhub.com*\", \"*cortins.tk*\", \"*pooldd.com*\", \"*unmineable.com*\", \"*f2pool.com*\",\n  \"*graef.in*\", \"*nanopool.org*\", \"*myxmr.pw*\", \"*ratchetmining.com*\", \"*cryptmonero.com*\", \"*xmrminer.cc*\",\n  \"*riefly.id*\", \"*iwanttoearn.money*\", \"*herominers.com*\", \"*xmrpool.me*\", \"*miners.pro*\", \"*luckpool.net*\",\n  \"*twotouchauthentication.online*\", \"*hashvault.pro*\", \"*4i7i.com*\", \"*miningocean.org*\", \"*2miners.com*\",\n  \"*xmrpool.eu*\", \"*monerpool.org*\", \"*joulecoin.org*\", \"*suprnova.cc*\", \"*monerocean.stream*\", \"*bohemianpool.com*\", \n  \"*crypto-pool.fr*\", \"*xmr.pt*\", \"*alimabi.cn*\", \"*teracycle.net*\", \"*monerogb.com*\", \"*armornetwork.org*\",\n  \"*emercoin.net*\", \"*poolmining.org*\", \"*minexmr.cn*\", \"*moriaxmr.com*\", \"*ethereumpool.co*\", \"*minercircle.com*\",\n  \"*prohash.net*\", \"*zer0day.ru*\", \"*crypto-pool.info*\", \"*pool.support*\", \"*siamining.com*\", \"*5b6b7b.ru*\",\n  \"*c3pool.com*\", \"*somec.cc*\", \"*hellominer.com*\", \"*usa-138.com*\", \"*mixpools.org*\", \"*xmrpool.net*\",\n  \"*moneroworld.com*\", \"*minerxmr.ru*\", \"*d5pool.us*\", \"*hashcity.org*\", \"*hex7e4.ru*\", \"*zpool.ca*\", \"*minexmr.com*\",\n  \"*monerohash.com*\", \"*multipool.us*\", \"*moneropool.nl*\", \"*nbminer.com*\", \"*ppxxmr.com*\", \"*xmrfast.com*\",\n  \"*webhop.net*\", \"*ethpool.org*\", \"*slushpool.com*\", \"*antpool.com*\", \"*nicehash.com*\", \"*nicehash.net*\",\n  \"*zergpool.com*\", \"*mining-dutch.nl*\", \"*blockmasters.co*\", \"*bsod.pw*\", \"*fairpool.xyz*\", \"*miningrigrentals.com*\",\n  \"*hashing24.com*\", \"*ethermine.org*\", \"*flexpool.io*\", \"*hiveon.net*\", \"*sparkpool.com*\", \"*2miners.org*\",\n  \"*poolin.com*\", \"*viabtc.com*\", \"*f2pool.org*\", \"*coinhive.com*\", \"*cryptoloot.pro*\", \"*webmine.cz*\",\n  \"*minero.cc*\", \"*monerohash.org*\", \"*monerohash.net*\", \"*moneropool.ru*\", \"*moneroocean.stream*\", \"*rx.unmineable.com*\"\n) and not (\n  process.parent.name in (\"sendmail\", \"postfix-local\", \"check-quota\", \"zmcontrol\", \"find\", \"timeout\", \"php\") or\n  process.name in (\"timeout\", \"host\", \"ptxas\") or\n  process.command_line like (\"*zpool.cache*\", \"*app/jobs/ant-sec_observe-income.py*\") or\n  process.parent.args == \"/scripts/run_certbot.sh\" or\n  process.parent.command_line == \"runc init\" or\n  (process.parent.command_line == \"/bin/bash /usr/local/bin/soc_guard.sh\" and process.executable == \"/usr/bin/grep\") or\n  (process.parent.name like \"php*\" and process.command_line like \"*/var/tools/koalaping/bin/ping.php*\") or\n  (\n    process.parent.command_line == \"/bin/bash /root/nicehash/nicehash_api.sh /main/api/v2/mining/algo/stats\" and\n    process.command_line like \"python3 /root/nicehash/nicehash.py -b https://api2.nicehash.com -o * -m GET -p /main/api/v2/mining/algo/stats\"\n  )\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1496
+          name: Resource Hijacking
+          reference: "https://attack.mitre.org/techniques/T1496/"
+      tactic:
+        id: TA0040
+        name: Impact
+        reference: "https://attack.mitre.org/tactics/TA0040/"
+  internal:
+    min_endpoint_version: "7.15.0"

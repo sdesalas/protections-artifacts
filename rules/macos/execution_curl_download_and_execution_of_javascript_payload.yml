@@ -1,0 +1,41 @@
+id: "871f0c30-a7c5-40a5-80e3-a50c6714632f_1.0.46"
+type: security-rule
+attributes:
+  description: |
+    Identifies when curl is used to download a JavaScript payload and subsequently execute it using the built-in osascript
+    utility. An adversary may use this technique to execute their malicious payload and obtain initial access to an
+    endpoint.
+  rule_id: "871f0c30-a7c5-40a5-80e3-a50c6714632f"
+  license: Elastic License v2
+  name: Curl Download and Execution of JavaScript Payload
+  os_list:
+    - macos
+  reference:
+    - "https://github.com/its-a-feature/Mythic"
+  version: "1.0.46"
+  query: "sequence by process.parent.entity_id with maxspan=15s\n  [process where event.action == \"exec\" and\n    process.name in (\"curl\", \"nscurl\") and process.args like (\"-o\", \"--output\", \"-O\", \"--remote-name\") and process.parent.name in~ (\"bash\", \"zsh\", \"sh\", \"Terminal\") and \n    not process.args like (\"https://*.jamfcloud.com/JSSResource/computercommands/command/BlankPush/id/*\", \"POST\")]\n  [process where event.action == \"exec\" and process.name == \"osascript\" and\n    (process.args == \"-e\" or process.args == \"-l\") and\n    not process.Ext.effective_parent.executable in\n                                                  (\"/usr/local/jamf/bin/jamf\",\n                                                   \"/Library/Addigy/auditor\",\n                                                   \"/opt/jc/bin/jumpcloud-agent\",\n                                                   \"/Library/Intune/Microsoft Intune Agent.app/Contents/MacOS/IntuneMdmDaemon\", \n                                                   \"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon\", \n                                                   \"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfManagementService.app/Contents/MacOS/JamfManagementService\") and \n    not process.command_line : (\"osascript -e display dialog \\\"Please advise your Support Representative of the following error:\\\\r\\\\r• Dialog Team ID verification failed\\\\r\\\\r\\\" with title \\\"Setup Your Mac: Error\\\" buttons {\\\"Close\\\"} with icon caution\", \n                                \"osascript -e display dialog \\\"Please advise your Support Representative of the following error:\\\\r\\\\r• Dialog Team ID verification failed\\\\r\\\\r\\\" with title \\\"App Auto-Patch: Error\\\" buttons {\\\"Close\\\"} with icon caution\") and\n    not process.parent.command_line == \"/bin/bash /Library/Management/super/super\"\n    ]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.16.0"

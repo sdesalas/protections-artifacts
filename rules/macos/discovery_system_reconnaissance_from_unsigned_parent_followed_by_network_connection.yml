@@ -1,0 +1,51 @@
+id: a7c3e891-5f2d-4b8e-9d1a-6e4f8b2c0d1e_1.0.4
+type: security-rule
+attributes:
+  description: |
+    Identifies macOS system discovery commands used to collect the computer name and hardware UUID, executed by a child of
+    an unsigned or untrusted process running from a user-writable path, followed within a short window by an outbound
+    network connection to a named domain.
+  rule_id: a7c3e891-5f2d-4b8e-9d1a-6e4f8b2c0d1e
+  license: Elastic License v2
+  name: System Reconnaissance from Unsigned Parent Followed by Network Connection
+  os_list:
+    - macos
+  reference:
+    - "https://www.wiz.io/blog/threat-actors-target-crypto-orgs"
+    - "https://attack.mitre.org/techniques/T1082/"
+  version: "1.0.4"
+  query: "sequence with maxspan=1m\n  [process where event.type == \"start\" and event.action == \"exec\" and\n   (\n     process.command_line like \"*scutil --get ComputerName*\" or\n     process.command_line like~ \"*ioreg*IOPlatformExpertDevice*IOPlatformUUID*\" or \n     process.command_line like~ \"*ioreg*-rd1*IOPlatformExpertDevice*\"\n   ) and\n   (process.parent.code_signature.trusted == false or process.parent.code_signature.exists == false) and\n   process.parent.executable like (\"/Users/*\", \"/private/tmp/*\", \"/tmp/*\") and\n   not process.parent.executable like~ (\n     \"/Users/*/.local/share/uv/python/*/bin/python*\",\n     \"/Users/*/Desktop/*\"\n   ) and\n   not process.parent.code_signature.signing_id like~ (\"spawn-helper-*\", \"herdr-*\")] by process.parent.entity_id\n  [network where event.type == \"start\" and event.action == \"connection_attempted\" and\n   destination.domain != null and \n   not destination.domain in (\"login.microsoftonline.com\",\n                              \"storage.googleapis.com\", \"test.salesforce.com\", \"api.github.com\",\n                              \"graph.microsoft.com\", \"cloud.tilt.dev\", \"api.anthropic.com\",\n                              \"platform.claude.com\") and\n   not destination.domain like \"*.acronis.com\"] by process.entity_id\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1082
+          name: System Information Discovery
+          reference: "https://attack.mitre.org/techniques/T1082/"
+      tactic:
+        id: TA0007
+        name: Discovery
+        reference: "https://attack.mitre.org/tactics/TA0007/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+          subtechnique:
+            - id: T1071.001
+              name: Web Protocols
+              reference: "https://attack.mitre.org/techniques/T1071/001/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.16.0"

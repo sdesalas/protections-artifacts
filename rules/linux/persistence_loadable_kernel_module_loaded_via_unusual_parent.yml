@@ -1,0 +1,51 @@
+id: "7365ad8d-5aad-4720-a262-16367be025c0_1.0.11"
+type: security-rule
+attributes:
+  description: |
+    This rule monitors for the loading of kernel modules by unusual parent processes. Loadable kernel modules (LKMs) are
+    pieces of code that can be loaded into the kernel at runtime to extend its functionality. These are commonly abused by
+    rootkits or other malicious software to hide their presence or to gain elevated privileges. These LKMs are commonly
+    loaded through expected parent processes.
+  rule_id: "7365ad8d-5aad-4720-a262-16367be025c0"
+  license: Elastic License v2
+  name: Loadable Kernel Module Loaded via Unusual Parent
+  os_list:
+    - linux
+  reference:
+    - "https://www.elastic.co/security-labs/continuation-on-persistence-mechanisms"
+  version: "1.0.11"
+  query: "process where event.type == \"start\" and event.action == \"load_module\" and (\n  process.parent.executable like (\n    \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"./*\", \"/run/*\", \"/var/run/*\", \"/boot/*\", \"/sys/*\", \"/lost+found/*\",\n    \"/proc/*\", \"/var/mail/*\", \"/var/www/*\", \"/home/*\", \"/root/*\" \n  ) or\n  process.parent.name like~ (\n    // Hidden processes\n    \".*\",\n    // Suspicious file formats\n    \"*.elf\", \"*.sh\", \"*.py\", \"*.rb\", \"*.pl\", \"*.lua*\", \"*.php*\", \"*.js\",\n    // Scheduled tasks\n    \"cron\", \"crond\"\n  ) or\n  (\n    process.parent.name like (\"python*\", \"perl*\", \"ruby*\", \"lua*\", \"php*\", \"node\", \"java\") and\n    not (\n      (\n        process.executable == \"/usr/bin/kmod\" and\n        process.args in (\"/sbin/modprobe\", \"modprobe\", \"/usr/bin/modprobe\", \"/usr/sbin/modprobe\") and\n        process.args_count <= 2\n      ) or\n      process.executable == \"/sbin/iscsiadm\"\n    )\n  )\n) and\nnot (\n  process.parent.command_line in (\n    \"/usr/bin/python3 -m kcarectl.__main__ --smart-update\",\n    \"/usr/bin/python3 -m kcarectl.__main__ -q --auto-update\",\n    \"/usr/bin/perl /usr/sbin/csf -r\",\n    \"pvestatd\",\n    \"/usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid\",\n    \"/usr/bin/python3 -s /usr/sbin/firewalld --nofork --nopid\",\n    \"/usr/bin/python3 -sP /usr/sbin/firewalld --nofork --nopid\",\n    \"/usr/bin/python3 -m kcarectl.__main__ --unload\",\n    \"python2 /usr/bin/kcarectl -q --auto-update\"\n  ) or\n  process.parent.args in (\"/usr/share/ksplice/ksplice-apply\", \"/usr/bin/waydroid\", \"/usr/sbin/blksnap-loader\") or\n  process.parent.args like \"/home/*/.ansible/tmp/ansible-tmp-*/AnsiballZ_command.py\" or\n  process.args == \"ip6_tables\" or\n  (process.name == \"systemd\" and process.parent.name == \"runc\" and process.parent.command_line == \"runc init\") or\n  (\n    process.parent.executable like \"/usr/bin/python*\" and\n    process.command_line in (\"/usr/sbin/modprobe br_netfilter\", \"/usr/sbin/modprobe overlay\")\n  ) or\n  process.parent.executable like (\n    \"/run/containerd/io.containerd.runtime.v2.task/k8s.io/*\", \"./runc\", \"/opt/puppetlabs/puppet/bin/ruby\",\n    \"/home/*/work/check-hardware/coco-detect/target/debug/coco-detect\"\n  ) or\n  (process.parent.executable == \"/usr/bin/perl\" and process.parent.args == \"/usr/lib/uptrack/ksplice-apply\")\n)\n"
+  min_endpoint_version: "9.1.4"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.006
+              name: Kernel Modules and Extensions
+              reference: "https://attack.mitre.org/techniques/T1547/006/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1014
+          name: Rootkit
+          reference: "https://attack.mitre.org/techniques/T1014/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "9.1.4"

@@ -1,0 +1,56 @@
+id: "7f1872c5-0231-4fa7-a1e7-6400964d7cf3_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    Identifies DNS queries to Mail domain names by the Windows Shared Services Host process svchost. Adversaries may
+    communicate using application layer protocols associated with electronic mail delivery to avoid detection/network
+    filtering by blending in with existing traffic.
+  rule_id: "7f1872c5-0231-4fa7-a1e7-6400964d7cf3"
+  license: Elastic License v2
+  name: Service Communication via Mail Protocol
+  os_list:
+    - windows
+  version: "1.0.8"
+  query: |
+    sequence by process.entity_id with maxspan=3m
+     [library where process.name : "svchost.exe" and dll.Ext.relative_file_creation_time <= 900 and
+      not dll.code_signature.status : ("trusted", "errorExpired", "errorCode_endpoint*")]
+     [dns where dns.question.name : ("smtp.*", "mail.*") and process.name : "svchost.exe"]
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.003
+              name: Windows Service
+              reference: "https://attack.mitre.org/techniques/T1543/003/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+          subtechnique:
+            - id: T1071.003
+              name: Mail Protocols
+              reference: "https://attack.mitre.org/techniques/T1071/003/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.4.0"

@@ -1,0 +1,44 @@
+id: "01898b20-1504-49d1-98b2-777e32c207be_1.0.7"
+type: security-rule
+attributes:
+  description: |
+    Detects when Python is executed with the -c (command) option containing suspicious Python code followed immediately
+    after by a Python outbound network event. This activity could indicate and attempt to establish initial access or
+    download an additional payload or tool from C2.
+  rule_id: "01898b20-1504-49d1-98b2-777e32c207be"
+  license: Elastic License v2
+  name: Potential Python Reverse Shell
+  os_list:
+    - macos
+  version: "1.0.7"
+  query: "sequence by process.entity_id with maxspan=30s\n[process where event.type == \"start\" and event.action == \"exec\" and \n  process.name like~ \"python*\" and \n  process.args == \"-c\" and\n  process.command_line like~ (\"*import*pty.spawn*\", \"*import*subprocess.call*\")]\n[network where event.type == \"start\" and event.type == \"start\" and\n   not cidrmatch(destination.ip, \n       \"240.0.0.0/4\", \"233.252.0.0/24\", \"224.0.0.0/4\", \"198.19.0.0/16\", \"192.18.0.0/15\", \n       \"192.0.0.0/24\", \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \n       \"192.0.2.0/24\", \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.168.0.0/16\", \"192.88.99.0/24\", \n       \"100.64.0.0/10\", \"192.175.48.0/24\", \"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\",\n       \"::1\", \"FE80::/10\", \"FF00::/8\")]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.16.0"

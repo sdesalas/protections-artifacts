@@ -1,0 +1,29 @@
+id: "358b23e4-ed82-454f-9351-69f5844e7da9_1.0.6"
+type: security-rule
+attributes:
+  description: Detects multiple Windows Memory API calls to modify the protection of the same memory address in a short time window.
+  rule_id: "358b23e4-ed82-454f-9351-69f5844e7da9"
+  license: Elastic License v2
+  name: Potential Unbacked Memory Content Masking
+  os_list:
+    - windows
+  version: "1.0.6"
+  query: "sequence by process.entity_id, process.Ext.api.parameters.size, process.Ext.api.parameters.address with maxspan=60s\n [api where process.Ext.api.name == \"VirtualProtect\" and\n  process.Ext.api.summary : \"*Unbacked*\" and process.Ext.api.parameters.size >= 100000 and \n  process.Ext.api.behaviors == \"execute_fluctuation\" and process.Ext.api.behaviors == \"allocate_shellcode\" and\n  process.thread.Ext.call_stack_final_user_module.name != \"Kernel\" and\n  process.thread.Ext.call_stack_final_user_module.hash.sha256 != \"eed60fb1abc328b156313abdc5e44389d25e59ffb3c1eb9353baf611c2c7147d\" and\n  not _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry, $entry.trusted == true and $entry.subject_name == \"Activision Publishing Inc\")]\n [api where process.Ext.api.name == \"VirtualProtect\" and\n  process.Ext.api.summary : \"*Unbacked*\" and process.Ext.api.parameters.size >= 100000 and \n  process.Ext.api.behaviors == \"execute_fluctuation\" and process.Ext.api.behaviors == \"allocate_shellcode\"]\n"
+  min_endpoint_version: "8.10.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

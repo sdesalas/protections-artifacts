@@ -1,0 +1,58 @@
+id: a9bec1de-bc5f-4e0f-a80e-569f5b920ef6_1.0.14
+type: security-rule
+attributes:
+  description: |
+    Detects the attempt to access or open the users TCC database by an unsigned or untrusted binary. This activity may
+    indicate the presence of a malicious payload attempting to bypass TCC or gain awareness of system permissions in place.
+  rule_id: a9bec1de-bc5f-4e0f-a80e-569f5b920ef6
+  license: Elastic License v2
+  name: User TCC DB Access by Unsigned or Untrusted Process
+  os_list:
+    - macos
+  reference:
+    - "https://www.sentinelone.com/blog/session-cookies-keychains-ssh-keys-and-more-7-kinds-of-data-malware-steals-from-macos-users/"
+  version: "1.0.14"
+  query: "file where event.action == \"open\" and process.executable != null and \n file.path like~ \"/Users/*/Library/Application Support/com.apple.TCC/TCC.db\" and\n (process.code_signature.trusted == false or process.code_signature.exists == false) and\n not Effective_process.executable in (\"/Applications/Vorta.app/Contents/MacOS/vorta-darwin\",\n                                      \"/Applications/CleanMyMac X.app/Contents/MacOS/CleanMyMac X\",\n                                      \"/Applications/CleanMyMac X.app/Contents/Library/LoginItems/CleanMyMac X HealthMonitor.app/Contents/MacOS/CleanMyMac X HealthMonitor\") and\n not process.code_signature.signing_id like~ \"rg-*\"\n"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1106
+          name: Native API
+          reference: "https://attack.mitre.org/techniques/T1106/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1548
+          name: Abuse Elevation Control Mechanism
+          reference: "https://attack.mitre.org/techniques/T1548/"
+          subtechnique:
+            - id: T1548.006
+              name: TCC Manipulation
+              reference: "https://attack.mitre.org/techniques/T1548/006/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1069
+          name: Permission Groups Discovery
+          reference: "https://attack.mitre.org/techniques/T1069/"
+        - id: T1082
+          name: System Information Discovery
+          reference: "https://attack.mitre.org/techniques/T1082/"
+      tactic:
+        id: TA0007
+        name: Discovery
+        reference: "https://attack.mitre.org/tactics/TA0007/"
+  internal:
+    min_endpoint_version: "8.10.2"

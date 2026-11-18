@@ -1,0 +1,40 @@
+id: "727db78e-e1dd-4bc0-89b0-885cd99e069e_1.0.45"
+type: security-rule
+attributes:
+  description: |
+    Identifies when suspicious values are written to Run registry keys via signed binaries. Run registry keys cause programs
+    to run each time that a user logs on and are often abused by adversaries to maintain persistence on an endpoint.
+  rule_id: "727db78e-e1dd-4bc0-89b0-885cd99e069e"
+  license: Elastic License v2
+  name: Suspicious String Value Written to Registry Run Key
+  os_list:
+    - windows
+  reference:
+    - "https://docs.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys"
+  version: "1.0.45"
+  query: "registry where registry.data.strings != null and process.executable != null and\n  user.id : (\"S-1-5-21*\", \"S-1-12-*\") and\n  registry.path : (\n      \"H*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\",\n      \"H*\\\\Software\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\",\n      \"H*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\",\n      \"H*\\\\Software\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\") and\n  not process.executable :\n       (\"?:\\\\Windows\\\\SysWOW64\\\\msiexec.exe\",\n\t    \"?:\\\\Windows\\\\system32\\\\msiexec.exe\",\n\t    \"C:\\\\Windows\\\\Installer\\\\MSI*.tmp\",\n\t    \"?:\\\\Windows\\\\SysWOW64\\\\Macromed\\\\Flash\\\\*.exe\",\n\t    \"?:\\\\Windows\\\\Downloaded Program Files\\\\*.exe\",\n\t    \"?:\\\\Windows\\\\system32\\\\spool\\\\DRIVERS\\\\*\",\n\t    \"?:\\\\Windows\\\\system32\\\\mmc.exe\",\n\t    \"?:\\\\Windows\\\\Samsung\\\\PanelMgr\\\\SSMMgr.exe\",\n\t    \"?:\\\\Windows\\\\System32\\\\wsl.exe\",\n\t    \"?:\\\\Windows\\\\SysWOW64\\\\d3con.exe\",\n\t    \"?:\\\\Windows\\\\System32\\\\StikyNot.exe\",\n\t    \"?:\\\\WINDOWS\\\\splwow64.exe\",\n\t    \"?:\\\\Program Files\\\\*.exe\",\n\t    \"?:\\\\Program Files (x86)\\\\*.exe\",\n\t    \"?:\\\\Windows\\\\SysWOW64\\\\Macromed\\\\Flash\\\\FlashUtil*_Plugin.exe\",\n\t    \"?:\\\\Windows\\\\System32\\\\wiawow64.exe\",\n\t    \"?:\\\\Windows\\\\SysWOW64\\\\NSIS.Library.RegTool.v3.{BF6A0CE1-774D-43F4-BC30-45E57E406CE1}.exe\",\n\t    \"?:\\\\Windows\\\\System32\\\\svchost.exe\",\n\t    \"\\\\Device\\\\Mup\\\\*.exe\") and\n  not (process.name : \"cscript.exe\" and registry.value : \"ContingencyUninstallNXTSForCurrentUser\") and\n  not (process.name : \"ZoomInfoContactContributor*.exe\" and registry.value : \"ZoomInfo Contact Contributor\") and\n  not (process.name : \"rundll32.exe\" and registry.value : (\"bit4id csp store register*\", \"SafeDiveCertMgm\")) and\n  not (process.name : (\"bomgar-scc.exe\", \"ThinkGear Connector.exe\") and registry.value : (\"Bomgar_Cleanup_*\", \"ThinkGear Connector\")) and\n  registry.data.strings :\n            (\"*rundll32*\",\n             \"*regsvr32*\",\n             \"*mshta*\",\n             \"*msbuild*\",\n             \"*RegAsm*\",\n             \"*RegSvcs*\",\n             \"*InstallUtil*\",\n             \"*cscript*\",\n             \"*wscript*\",\n             \"*.js?\",\n             \"*.js\",\n             \"*.vbs?\",\n             \"*.vbs\",\n             \"*.vbe?\",\n             \"*.vbe\",\n             \"*.bat?\",\n             \"*.bat\",\n             \"*.url\",\n             \"*.url?\",\n             \"*.lnk\",\n             \"*.lnk?\",\n             \"*.jar\",\n             \"*msxsl*\",\n             \"*cmstp*\",\n             \"*cerutil*\",\n             \"*bitsadmin*\",\n             \"*msiexec*\",\n             \"*wmic*\",\n             \"*powershell*\",\n             \"*cmd.exe *\",\n             \"*cmd * /c*\",\n             \"*svchost*\",\n             \"*lsass*\",\n             \"*csrss*\",\n             \"*winlogon*\",\n             \"*Microsoft.Workflow.Compiler.exe*\",\n             \"*VBScript.Encode*\",\n             \"*http://*\",\n             \"*WScript.Shell*\",\n             \"*VBScript.Encode*\",\n             \"*:\\\\Users\\\\Public\\\\*\",\n             \"*:\\\\Users\\\\*\\\\Documents\\\\*\",\n             \"*:\\\\Documents and Settings\\\\*\",\n             \"*:\\\\Users\\\\*\\\\Pictures\\\\*\",\n             \"*:\\\\Users\\\\*\\\\Music\\\\*\",\n             \"*:\\\\Users\\\\*\\\\Pictures\\\\*\",\n\t\t\t \"?:\\\\Users\\\\*\\\\Downloads\\\\*\",\n             \"?:\\\\Users\\\\*\\\\Desktop\\\\*\",\n             \"*\\\\AppData\\\\Roaming\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\Startup\\\\*\",\n             \"\\\\\\\\*.exe\",\n             \"*javaw.exe* -jar *\") and not\n    registry.data.strings :\n                   (\"*rundll32.exe*advpack.dll,DelNodeRunDLL32*\",\n                    \"*LogiLDA.dll,LogiFetch*\",\n                    \"*\\\\Users\\\\*\\\\AppData\\\\Local\\\\Microsoft\\\\OneDrive\\\\*\",\n                    \"*%ProgramFiles%*\",\n                    \"*:\\\\Program Files\\\\*\",\n                    \"*:\\\\Program Files (x86)\\\\*\",\n                    \"*:\\\\Windows\\\\SystemApps\\\\*\",\n                    \"*:\\\\Windows\\\\System32\\\\DriverStore\\\\*\",\n                    \"*:\\\\WINDOWS\\\\Speech\\\\*\",\n                    \"*:\\\\WINDOWS\\\\System32\\\\RtkAudUService*\",\n                    \"*:\\\\WINDOWS\\\\system32\\\\SecurityHealthSystray.exe\",\n                    \"*restartSAPinst.vbs*\",\n                    /* Issue #324 */\n                    \"*\\\\Windows\\\\Downloaded Program Files\\\\*\",\n                    \"*\\\\Windows\\\\SysWOW64\\\\Macromed\\\\*\",\n                    \"*\\\\AppData\\\\Roaming\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\*.lnk*\",\n                    \"*\\\\Pictures\\\\*com_Internet_Download_Manager*\",\n                    \"cmd.exe /c \\\"start /min /d \\\"C:\\\\Users\\\\*\\\\AppData\\\\Local\\\\PDFProSuite\\\" PDFProSuite . --update\\\"\",\n                    \"Powershell.exe -NoProfile -ExecutionPolicy ByPass -WindowStyle Hidden -file C:\\\\*\\\\RunOnce\\\\Logon.ps1\",\n                    \"powershell.exe -windowstyle hidden -ExecutionPolicy Bypass -File\",\n                    \"\\\"\\\\\\\\*Desktop.lnk\\\"\") and\n\n    not (process.code_signature.subject_name :\n          (\"Solanki Piyushkumar\", \"Sysinternals\", \"NortonLifeLock Inc.\", \"Bomgar Corporation\", \"BIT4ID SRL\",\n           \"JACK HENRY & ASSOCIATES, INC.\", \"Connectify (Connectify, Inc.)\", \"Slack Technologies, LLC\",\n           \"Symantec Corporation\", \"Loom, Inc.\", \"NinjaOne LLC\", \"BeyondTrust Corporation\", \"Quest Software, Inc.\", \n\t\t   \"PHAM KIM LONG\", \"Grammarly, Inc.\") and\n           process.code_signature.trusted == true) and\n\n    not (registry.value : \"com.squirrel.Teams.Teams\" and\n        registry.data.strings : \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Microsoft\\\\Teams\\\\Update.exe --processStart \\\"Teams.exe\\\" --process-start-args \\\"--system-initiated\\\"\")\n"
+  min_endpoint_version: "8.0.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.001
+              name: Registry Run Keys / Startup Folder
+              reference: "https://attack.mitre.org/techniques/T1547/001/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "8.0.0"

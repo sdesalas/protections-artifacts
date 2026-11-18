@@ -1,0 +1,37 @@
+id: "28297d1e-c2a9-442c-9e48-98fe8ce36fab_1.0.26"
+type: security-rule
+attributes:
+  description: |
+    Identifies suspicious child processes of the Microsoft OneNote application. This may indicate an attempt to execute
+    malicious embedded objects from a .one file.
+  rule_id: "28297d1e-c2a9-442c-9e48-98fe8ce36fab"
+  license: Elastic License v2
+  name: Suspicious Microsoft OneNote Child Process
+  os_list:
+    - windows
+  reference:
+    - "https://blog.sevagas.com/IMG/pdf/redteam_with_onenote.pdf"
+  version: "1.0.26"
+  query: "process where event.action == \"start\" and\n  process.parent.name : \"ONENOTE.EXE\" and\n  (\n\t\tprocess.pe.original_file_name : (\n\t\t    \"rundll32.exe\",\n\t\t    \"regsvr32.exe\",\n\t\t    \"bitsadmin.exe\",\n\t\t    \"certutil.exe\",\n\t\t    \"installutil.exe\",\n\t\t    \"schtasks.exe\",\n\t\t    \"wmic.exe\",\n\t\t    \"cscript.exe\",\n\t\t    \"wscript.exe\",\n\t\t    \"cmstp.exe\",\n\t\t    \"Microsoft.Workflow.Compiler.exe\",\n\t\t    \"regasm.exe\",\n\t\t    \"regsvcs.exe\",\n\t\t    \"mshta.exe\",\n\t\t    \"msxsl.exe\",\n\t\t    \"ieexec.exe\",\n\t\t    \"cmd.exe\",\n\t\t    \"powershell.exe\",\n\t\t    \"hh.exe\",\n\t\t    \"javaw.exe\",\n\t\t    \"pcalua.exe\",\n\t\t    \"curl.exe\",\n\t\t    \"ScriptRunner.exe\",\n\t\t    \"CertOC.exe\",\n\t\t    \"Workfolders.exe\",\n\t\t    \"odbcconf.exe\",\n\t\t    \"msiexec.exe\",\n\t\t    \"msdt.exe\")\n\t\t or\n\n\t\t(process.name : \"explorer.exe\" and\n\t\t process.args : (\"*.hta*\", \"*.vb*\", \"*.wsh*\", \"*.js*\", \"*.ps*\", \"*.scr*\", \"*.pif*\", \"*bat*\", \"*.cmd*\")) or\n\n\t\tprocess.executable : (\"?:\\\\Users\\\\*\\\\AppData\\\\*\",\n\t\t                      \"?:\\\\Users\\\\Public\\\\\",\n\t\t                      \"?:\\\\ProgramData\\\\*\",\n\t\t                      \"?:\\\\Windows\\\\Tasks\\\\*\",\n\t\t                      \"?:\\\\Windows\\\\Temp\\\\*\",\n\t\t                      \"?:\\\\Windows\\\\System32\\\\Tasks\\\\*\")\n  ) and\n\n  /* many FPs like browsers and chat desktop apps */\n  not (process.executable : \"?:\\\\Users\\\\*\\\\AppData\\\\*\" and process.code_signature.trusted == true) and\n  not (process.name : \"rundll32.exe\" and process.command_line : \"*windows\\\\system32\\\\spool\\\\DRIVERS\\\\*MonitorPrintJobStatus*\") and\n  not (process.pe.original_file_name == \"Teams.exe\" and\n        process.code_signature.trusted == true and process.code_signature.subject_name : \"Microsoft Corporation\") and\n  not (process.name : \"rundll32.exe\" and process.args : \"?:\\\\Program Files (x86)\\\\AllesTechnologyAgent\\\\Super Shield\\\\SuperShieldHookCpy32.dll,#1\") and \n  not (process.code_signature.trusted == true and process.code_signature.subject_name : (\"VideoLAN\", \"Interact Digital AG\"))\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+  internal:
+    min_endpoint_version: "7.15.0"

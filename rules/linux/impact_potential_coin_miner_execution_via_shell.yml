@@ -1,0 +1,50 @@
+id: e5149069-189b-4b1a-ad24-9fed16f5a15b_1.0.12
+type: security-rule
+attributes:
+  description: |
+    This rule detects the execution of a coin miner via a shell command through potential mining commandline arguments.
+    Adversaries may leverage the resources of compromised systems to mine cryptocurrency, to generate revenue. This activity
+    may impact system performance and availability.
+  rule_id: e5149069-189b-4b1a-ad24-9fed16f5a15b
+  license: Elastic License v2
+  name: Potential Coin Miner Execution via Shell
+  os_list:
+    - linux
+  reference:
+    - "https://xmrig.com/docs/algorithms"
+  version: "1.0.12"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.executable != null and\nprocess.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\") and process.args == \"-c\" and (\n  (\n    process.command_line like (\"*-a*\", \"*--algo*\", \"*--coin*\") and process.command_line like (\n      \"*monero*\", \"*arqma*\", \"* dero *\", \"*rx/graft*\", \"*cn/upx2*\", \"*cn/1*\", \"*cn-lite/1*\", \"*cn-lite/0*\", \"*cn/0*\",\n      \"*argon2/chukwav2*\", \"*cn/ccx*\", \"*kawpow*\", \"*rx/keva*\", \"*cn-pico/tlo*\", \"*rx/sfx*\", \"*rx/arq*\", \"*rx/0*\",\n      \"*argon2/chukwa*\", \"*argon2/ninja*\", \"*rx/wow*\", \"*cn/fast*\", \"*cn/rwz*\", \"*cn/zls*\", \"*cn/double*\", \"*cn/r*\",\n      \"*cn-pico*\", \"*cn/half*\", \"*cn/2*\", \"*cn/xao*\", \"*cn/rto*\", \"*cn-heavy/tube*\", \"*cn-heavy/xhv*\", \"*cn-heavy/0*\"\n    )\n  ) or process.command_line like (\"*stratum+tcp://*\", \"*stratum2+tcp://*\", \"*--nicehash*\") \n) and not (\n  process.parent.name like (\n    \"find\", \"python3\", \"httpd\", \"sshd\", \"php*\", \"sudo\", \"ruby\", \"nvim\", \"vim\", \"make\", \"schroot\", \"vimdiff\", \"sbuild\", \"ninja\"\n  ) or\n  process.parent.executable in (\n    \"/opt/cron/registry-sync/ru/syncRegistryByReport.pl\",  \"/usr/bin/gvimdiff\", \"/usr/bin/ninja-reference\",\n    \"/usr/bin/sw-engine\", \"/usr/local/bin/teleport\", \"/usr/share/dotnet/dotnet\", \"/usr/libexec/openssh/sshd-session\"\n  ) or\n  process.parent.executable like (\"/tmp/baum/easybuild/*\", \"/home/*/.vscode-server/extensions/*/resources/native-binary/claude\") or\n  process.command_line like (\"*openssl*\", \"*--display-charset*\", \"sh -c aws s3 cp*\") or\n  process.parent.args in (\"/usr/bin/crun\", \"/usr/local/bin/claude\") or\n  (\n    process.parent.executable like \"/home/*/.local/share/claude/versions/*\" and\n    process.command_line like \"/bin/bash -c source /home/*/.claude/shell-snapshots/snapshot-*\"\n  )\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1496
+          name: Resource Hijacking
+          reference: "https://attack.mitre.org/techniques/T1496/"
+      tactic:
+        id: TA0040
+        name: Impact
+        reference: "https://attack.mitre.org/tactics/TA0040/"
+  internal:
+    min_endpoint_version: "7.15.0"

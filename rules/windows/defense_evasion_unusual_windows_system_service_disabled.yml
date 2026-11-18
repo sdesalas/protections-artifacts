@@ -1,0 +1,38 @@
+id: "7c44cfc6-d336-400e-9cc1-2417dfb5c00a_1.0.13"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to disable certain Windows security related services such as the Windows Defender or System Updates
+    via registry modification.
+  rule_id: "7c44cfc6-d336-400e-9cc1-2417dfb5c00a"
+  license: Elastic License v2
+  name: Unusual Windows System Service Disabled
+  os_list:
+    - windows
+  version: "1.0.13"
+  query: "registry where\n registry.value : \"Start\" and registry.data.strings == \"4\" and\n process.executable != null and registry.path != null and \n registry.path :\n         (\"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\WinDefend\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\SecurityHealthService\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\Sense\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\WdBoot\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\WdFilter\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\WdNisDrv\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\WdNisSvc\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\wscsvc\\\\Start\",\n          \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Services\\\\EventLog\\\\Start\") and\n not process.executable : (\"?:\\\\Windows\\\\System32\\\\reg.exe\", \"?:\\\\Windows\\\\regedit.exe\") and\n not (process.code_signature.subject_name in (\"Connectwise, LLC\", \"Enestech Software (Cyprus) Ltd\") and process.code_signature.trusted == true)\n"
+  actions: []
+  min_endpoint_version: "8.4.0"
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1112
+          name: Modify Registry
+          reference: "https://attack.mitre.org/techniques/T1112/"
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

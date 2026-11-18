@@ -1,0 +1,37 @@
+id: "036c0b79-9cba-4f01-a529-e0ef86981bad_1.0.7"
+type: security-rule
+attributes:
+  description: |
+    Identifies calls to Windows memory APIs from unusual NTDLL offsets. This may indicate an attempt to bypass API
+    monitoring using Return Oriented Programming (ROP) assembly gadgets to execute a syscall instruction.
+  rule_id: "036c0b79-9cba-4f01-a529-e0ef86981bad"
+  license: Elastic License v2
+  name: VirtualProtect from Unusual NTDLL Offset
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/doubling-down-etw-callstacks"
+  version: "1.0.7"
+  query: "api where\n process.Ext.api.name == \"VirtualProtect\" and process.thread.Ext.call_stack_summary like \"ntdll.dll|*\" and\n _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry, $entry.trusted == false or $entry.exists == false) and\n not _arraysearch(process.thread.Ext.call_stack, $entry,\n                  $entry.symbol_info: (\"?:\\\\windows\\\\system32\\\\ntdll.dll!ZwProtectVirtualMemory*\",\n                                       \"?:\\\\windows\\\\system32\\\\ntdll.dll!NtProtectVirtualMemory*\",\n                                       \"?:\\\\windows\\\\syswow64\\\\ntdll.dll!NtProtectVirtualMemory*\",\n                                       \"?:\\\\windows\\\\system32\\\\ntdll.dll!NtProtectVirtualMemory*\",\n                                       \"?:\\\\windows\\\\system32\\\\ntdll.dll!LdrLoadDll*\",\n                                       \"?:\\\\windows\\\\syswow64\\\\ntdll.dll!LdrLoadDll*\",\n                                       \"?:\\\\windows\\\\syswow64\\\\kernelbase.dll!VirtualProtect*\",\n                                       \"?:\\\\windows\\\\system32\\\\kernelbase.dll!VirtualProtect*\",\n                                       \"?:\\\\windows\\\\system32\\\\ntdll.dll+0x*\",\n                                       \"?:\\\\windows\\\\syswow64\\\\ntdll.dll+0x*\",\n                                       \"?:\\\\program files (x86)\\\\common files\\\\kaspersky lab\\\\*\\\\klhk\\\\klhk_x64\\\\klhkum.*.dll!KlhkumFastEntry+*\")) and\n _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: \"?:\\\\windows\\\\sys?????\\\\ntdll.dll!*+0x14\") and\n not process.thread.Ext.call_stack_final_user_module.protection_provenance like (\"Kernel\", \"Unknown\", \"Undetermined\", \"Kernel|*\") and\n not process.thread.Ext.call_stack_final_user_module.name in (\"Kernel\", \"Unknown\", \"Undetermined\") and\n not process.thread.Ext.call_stack_summary like (\"ntdll.dll|Unknown|wow64.dll|Unknown|wow64.dll|ntdll.dll|*\",\n                                                 \"ntdll.dll|Unknown|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|*\",\n                                                 \"ntdll.dll|Unknown|wow64.dll|Unknown|wow64.dll|wow64win.dll|ntdll.dll|*\") and\n not process.thread.Ext.call_stack_final_user_module.path like\n                                         (\"c:\\\\windows\\\\assembly\\\\nativeimages_*\\\\system.ni.dll\",\n                                          \"c:\\\\program files (x86)\\\\common files\\\\kaspersky lab\\\\*\\\\klhkum.*.dll\",\n                                          \"?:\\\\program files (x86)\\\\kaspersky lab\\\\*\\\\com_antivirus.dll\",\n                                          \"c:\\\\program files (x86)\\\\checkpoint\\\\endpoint security\\\\*\\\\klhkum.*.dll\") and\n /* Kaspersky usermode hook (klhkum/ushata) is loaded into third-party processes from multiple install roots\n    (Kaspersky VPN, versioned product dirs, Check Point bundling the Kaspersky engine); its signature array mixes\n    trusted and unchainable entries, so anchor on the verified Kaspersky signature instead of install paths */\n not (process.thread.Ext.call_stack_final_user_module.name like~ \"klhkum.*\" and\n      _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry,\n                   $entry.trusted == true and $entry.subject_name in (\"Kaspersky Lab JSC\", \"AO Kaspersky Lab\", \"Kaspersky Lab\"))) and\n process.thread.Ext.call_stack_final_user_module.hash.sha256 != null and \n not process.thread.Ext.call_stack_final_user_module.hash.sha256 in\n                                             (\"0c3b7b36302a1971e87f443e7c32a17facd3581457fd5087ee745806bf630516\",\n                                              \"ed19fae1f5122a66713aac93c24b47584c31c25dc73f076c15d0d3cd298f1338\",\n                                              \"a4934c1c5f5fa0c299427d228aceaadbff5674a3284d93f013d50c76ae382097\",\n                                              \"8d0a251e6641d6460b20535705a60562dc2b3efb5ed1cfc7895c632dd8ee3f0d\",\n                                              \"45baaaa253c6cc6e79e8c54ea9a8b167f0cd237879a74134804a13d4da97592a\",\n                                              \"3c69aef1794392dbcc33e54374e730c415bfdaf042315f2562ec4cb0cbad4d81\",\n                                              \"f83edc04210f95b944921a7254f9dda5ab9a84e0b511c85d85b72a8394bbba80\",\n                                              \"0be3da7c113fa1476cb1ef621ff875ed655e63dc7407f3180a8820433d150fd3\",\n                                              \"efd03f2525e69cdc30b5736af74d9485728b8a94d5624da87f1431b3706980ab\",\n                                              \"f83edc04210f95b944921a7254f9dda5ab9a84e0b511c85d85b72a8394bbba80\",\n                                              \"0fd78e00c865ee88a2c416d3e32c0271f3490df527870739c35fab4513dc36a2\")\n"
+  min_endpoint_version: "8.10.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

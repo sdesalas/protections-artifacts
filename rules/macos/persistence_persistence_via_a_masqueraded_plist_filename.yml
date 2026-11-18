@@ -1,0 +1,56 @@
+id: "3da48cdd-262a-42a9-af2f-c82ef639b9e3_1.0.26"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation or modification of a Launch agent or daemon property list file that masquerades as legitimate
+    software such as Apple or Microsoft Plist filename but performed by an untrusted or unsigned macho executable.
+  rule_id: "3da48cdd-262a-42a9-af2f-c82ef639b9e3"
+  license: Elastic License v2
+  name: Persistence via a Masqueraded Plist Filename
+  os_list:
+    - macos
+  reference:
+    - "https://www.virustotal.com/gui/file/68438dcb296b4aeada2be505d4907c9f6066ceb40737a99d36e35d81a8a08235"
+  version: "1.0.26"
+  query: "file where event.type != \"deletion\" and \nfile.name like~ \n      (\"*com.apple*.plist\",\n       \"*com.microsoft*.plist\", \n       \"*com.google*.plist\", \n       \"*com.adobe*.plist\", \n       \"*com.java*.plist\", \n       \"*com.mozilla*.plist\",\n       \"*com.dropbox*.plist\") and\n  file.path like\n       (\"/System/Library/LaunchAgents/*\", \n        \"/Library/LaunchAgents/*\",\n        \"/Users/*/Library/LaunchAgents/*\",\n        \"/System/Library/LaunchDaemons/*\",\n        \"/Library/LaunchDaemons/*\") and\n(process.code_signature.trusted == false or process.code_signature.exists == false)\n"
+  min_endpoint_version: "8.11.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.001
+              name: Launch Agent
+              reference: "https://attack.mitre.org/techniques/T1543/001/"
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.005
+              name: Match Legitimate Resource Name or Location
+              reference: "https://attack.mitre.org/techniques/T1036/005/"
+        - id: T1647
+          name: Plist File Modification
+          reference: "https://attack.mitre.org/techniques/T1647/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.11.0"

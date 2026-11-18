@@ -1,0 +1,58 @@
+id: adf59538-f71f-45e2-a3ae-af95b31c41df_1.0.8
+type: security-rule
+attributes:
+  description: |
+    This rule detects when a network connection is established via a descendant of a Node.js process. Attackers may use
+    Node.js to run scripts that create network connections for various malicious purposes, such as downloading and executing
+    payloads, establishing persistence, or exfiltrating data.
+  rule_id: adf59538-f71f-45e2-a3ae-af95b31c41df
+  license: Elastic License v2
+  name: Egress Network Connection from Node.js Descendant
+  os_list:
+    - macos
+  version: "1.0.8"
+  query: "sequence by process.entity_id with maxspan=1m\n  [process where event.type == \"start\" and event.action == \"exec\" and not process.name == \"node\" and \n   (\n     descendant of [process where event.type == \"start\" and event.action == \"exec\" and process.name == \"node\" and \n       (\n         process.command_line : (\"*post-install*\", \"*preinstall*\") or \n         (process.args like \"*/npm\" and process.args in (\"install\", \"update\"))\n      )] or \n     (process.parent.name == \"node\" and process.parent.command_line like (\"*post-install*\", \"*preinstall*\")) or \n     (process.parent.name == \"node\" and process.parent.args like \"*/npm\" and process.parent.args in (\"install\", \"update\"))\n    ) and not (\n      (process.name == \"sh\" and process.args == \"-c\" and process.args == \"node\") or\n      process.args like (\"rebuild\", \"build\", \"compile\", \"copyfiles*\") or\n      process.command_line in (\n        \"sh -c :; (node ./preinstall.js > /dev/null 2>&1 || true)\",\n        \"\"\"sh -c  node -e \"try{require('./_postinstall')}catch(e){}\" || exit 0\"\"\"\n      )\n    ) and (\n    process.name like (\n      \"nohup\", \"setsid\", \"nc\", \"ncat\", \"netcat\", \"netcat.openbsd\", \"netcat.traditional\", \"nc.openbsd\",\n      \"nc.traditional\", \"socat\", \"telnet\", \"busybox\", \"mkfifo\", \"xterm\"\n    ) or\n    process.executable like (\n      \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"./*\", \"/run/*\", \"/var/run/*\", \"/boot/*\", \"/sys/*\", \"/lost+found/*\",\n      \"/proc/*\", \"/var/mail/*\", \"/var/www/*\"\n    ) or\n    (\n       process.name == \"curl\" and process.args like \"*http*\" and process.args in (\"-o\", \"--output\") and\n       process.args like (\"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/private/tmp/*\")\n    ) or\n    (\n      process.name == \"wget\" and process.args like \"*http*\" and process.args in (\"-O\", \"--output-document\") and\n      process.args like (\"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/private/tmp/*\")\n    ) or\n    (process.name : \"python*\" and process.args : \"-c\" and process.args : (\n     \"*import*pty*spawn*\", \"*import*subprocess*call*\"\n    )) or\n    (process.name : \"perl*\" and process.args : \"-e\" and process.args : \"*socket*\" and process.args : (\n     \"*exec*\", \"*system*\"\n    )) or\n    (process.name : \"ruby*\" and process.args : (\"-e\", \"-rsocket\") and process.args : (\n     \"*TCPSocket.new*\", \"*TCPSocket.open*\"\n     )) or\n    (process.name : \"lua*\" and process.args : \"-e\" and process.args : \"*socket.tcp*\" and process.args : (\n     \"*io.popen*\", \"*os.execute*\"\n    )) or\n    (process.name : \"php*\" and process.args : \"-r\" and process.args : \"*fsockopen*\" and process.args : \"*/bin/*sh*\") or \n    (process.name : (\"awk\", \"gawk\", \"mawk\", \"nawk\") and process.args : \"*/inet/tcp/*\") or\n    (process.name in (\"rvim\", \"vim\", \"vimdiff\", \"rview\", \"view\") and process.args == \"-c\" and process.args : \"*socket*\")\n  ) and not (\n      process.executable like (\n        \"/usr/bin/terraform\", \"/opt/homebrew/Cellar/git/*/libexec/git-core/git-remote-http\", \"/usr/local/aws-cli/aws\", \"/usr/bin/env\",\n        \"/Applications/Xcode.app/Contents/Developer/usr/libexec/git-core/git-remote-http\", \"/usr/lib/git-core/git-remote-https\", \"/usr/bin/ssh\",\n        \"/home/linuxbrew/.linuxbrew/opt/git/libexec/git-core/git-remote-https\", \"/usr/lib/git-core/git-remote-https\", \"/usr/bin/git-remote-https\",\n        \"/usr/bin/ssh\", \"/var/lib/docker/*/git-remote-https\", \"/usr/libexec/git-core/git\", \"/home/linuxbrew/.linuxbrew/*\", \"/usr/lib/git-core/git\"\n      ) or\n      process.parent.executable like (\n        \"/opt/homebrew/Library/Homebrew/vendor/portable-ruby/*/bin/ruby\", \"/usr/local/Homebrew/Library/Homebrew/vendor/portable-ruby/*/bin/ruby\",\n        \"/usr/bin/git\"\n      )\n    )\n  ]\n  [network where event.type == \"start\" and event.action == \"connection_attempted\" and (\n    process.name like (\n      \"nohup\", \"setsid\", \"nc\", \"ncat\", \"netcat\", \"netcat.openbsd\", \"netcat.traditional\", \"nc.openbsd\",\n      \"nc.traditional\", \"socat\", \"telnet\", \"busybox\", \"mkfifo\", \"xterm\",\n      \"curl\", \"wget\", \"python*\", \"perl*\", \"ruby*\", \"lua*\", \"php*\", \"awk\", \"gawk\", \"mawk\", \"nawk\", \"rvim\", \"vim\", \"vimdiff\", \"rview\",\n      \"view\"\n    ) or\n    process.executable like (\n      \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"./*\", \"/run/*\", \"/var/run/*\", \"/boot/*\", \"/sys/*\", \"/lost+found/*\",\n      \"/proc/*\", \"/var/mail/*\", \"/var/www/*\"\n    )\n  ) and not (\n     destination.ip == null or destination.ip == \"0.0.0.0\" or\n     cidrmatch(\n       destination.ip, \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \"192.0.0.0/24\", \"192.0.0.0/29\",\n       \"192.0.0.8/32\", \"192.0.0.9/32\", \"192.0.0.10/32\", \"192.0.0.170/32\", \"192.0.0.171/32\", \"192.0.2.0/24\",\n       \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.168.0.0/16\", \"192.88.99.0/24\", \"224.0.0.0/4\", \"100.64.0.0/10\",\n       \"192.175.48.0/24\",\"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\", \"240.0.0.0/4\", \"::1\", \"FE80::/10\",\n       \"FF00::/8\"\n     )\n   )\n  ]\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+          subtechnique:
+            - id: T1071.001
+              name: Web Protocols
+              reference: "https://attack.mitre.org/techniques/T1071/001/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

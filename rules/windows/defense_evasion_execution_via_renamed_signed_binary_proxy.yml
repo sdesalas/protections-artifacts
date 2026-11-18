@@ -1,0 +1,37 @@
+id: b0207677-5041-470b-981d-13ab956cf5b4_1.0.40
+type: security-rule
+attributes:
+  description: |
+    Identifies built-in Windows programs that have been renamed and can be used for execution, downloads, and/or evasion.
+    Attackers may abuse this tactic to evade filename based detection of built-in tools.
+  rule_id: b0207677-5041-470b-981d-13ab956cf5b4
+  license: Elastic License v2
+  name: Execution via Renamed Signed Binary Proxy
+  os_list:
+    - windows
+  reference:
+    - "https://lolbas-project.github.io"
+    - "https://www.elastic.co/security-labs/unmasking-financial-services-intrusion-ref0657"
+  version: "1.0.40"
+  query: "process where event.action == \"start\" and\n process.name != null and\n     (\n       (process.pe.original_file_name == \"cscript.exe\" and not process.name : \"cscript.exe\") or\n       (process.pe.original_file_name == \"wscript.exe\" and not process.name : \"wscript.exe\") or\n       (process.pe.original_file_name == \"PowerShell.EXE\" and not process.name : \"PowerShell.EXE\") or\n       (process.pe.original_file_name == \"Cmd.Exe\" and not process.name : (\"Cmd.Exe\", \"command.com\")) or\n       (process.pe.original_file_name == \"MSHTA.EXE\" and not process.name : \"MSHTA.EXE\") or\n       (process.pe.original_file_name == \"RUNDLL32.EXE\" and not process.name : \"RUNDLL32.EXE\") or\n       (process.pe.original_file_name == \"REGSVR32.EXE\" and not process.name : \"REGSVR32.EXE\") or\n       (process.pe.original_file_name == \"MSBuild.exe\" and not process.name : \"MSBuild.exe\") or\n       (process.pe.original_file_name == \"InstallUtil.exe\" and not process.name : \"InstallUtil.exe\") or\n       (process.pe.original_file_name == \"RegAsm.exe\" and not process.name : \"RegAsm.exe\") or\n       (process.pe.original_file_name == \"RegSvcs.exe\" and not process.name : \"RegSvcs.exe\") or\n       (process.pe.original_file_name == \"msxsl.exe\" and not process.name : \"msxsl.exe\") or\n       (process.pe.original_file_name == \"Microsoft.Workflow.Compiler.exe\" and\n        not process.name : \"Microsoft.Workflow.Compiler.exe\") or\n       (process.pe.original_file_name == \"msiexec.exe\" and not process.name : \"msiexec.exe\" and\n        not process.executable : \"?:\\\\Windows\\\\Installer\\\\MSI*.tmp\") or\n       (process.pe.original_file_name == \"CMSTP.EXE\" and not process.name : \"CMSTP.EXE\") or\n       (process.pe.original_file_name == \"bitsadmin.exe\" and not process.name : \"bitsadmin.exe\") or\n       (process.pe.original_file_name == \"CertUtil.exe\" and not process.name : \"CertUtil.exe\") or\n       (process.pe.original_file_name == \"wmic.exe\" and not process.name : \"wmic.exe\") or\n       (process.pe.original_file_name == \"schtasks.exe\" and not process.name : \"schtasks.exe\") or\n       (process.pe.original_file_name == \"wuauclt.exe\" and not process.name : \"wuauclt.exe\") or\n       (process.pe.original_file_name == \"Bginfo.exe\" and not process.name : \"Bginfo*.exe\") or\n       (process.pe.original_file_name == \"VsJITDebugger.exe\" and not process.name : \"VsJITDebugger.exe\") or\n       (process.pe.original_file_name == \"xwizard.exe\" and not process.name : \"xwizard.exe\") or\n       (process.pe.original_file_name == \"extexport.exe\" and not process.name : \"extexport.exe\") or\n       (process.pe.original_file_name == \"CertReq.exe\" and not process.name : \"CertReq.exe\") or\n       (process.pe.original_file_name == \"bsdtar\" and not process.name : \"tar.exe\" and\n        process.code_signature.subject_name == \"Microsoft Windows\") or \n       (process.pe.original_file_name : \"GfxDownloadWrapper.exe\" and not process.name : \"GfxDownloadWrapper.exe\") or\n       (process.pe.original_file_name : \"devinit.dll\" and\n        process.code_signature.subject_name : \"Microsoft *\" and not process.name : \"devinit.exe\") or\n       (process.pe.original_file_name == \"DumpMinitool.exe\" and\n        process.code_signature.subject_name : \"Microsoft *\" and not process.name : \"DumpMinitool.exe\") or\n       (process.pe.original_file_name == \"curl.exe\" and\n        process.code_signature.subject_name : \"Microsoft *\" and not process.name : \"curl.exe\")\n     ) and\n /* some third party programs tend to include renamed binaries, still often run from trusted paths */\n not process.executable :\n        (\n          \"?:\\\\Windows\\\\System32\\\\*.exe\",\n          \"?:\\\\Windows\\\\SysWOW64\\\\*.exe\",\n          \"?:\\\\Program Files (x86)\\\\*.exe\",\n          \"?:\\\\Program Files\\\\*.exe\",\n          \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\System32\\\\*.exe\",\n          \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\SysWOW64\\\\*.exe\",\n          \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\Microsoft.NET\\\\*.exe\",\n          \"\\\\Device\\\\HarddiskVolume*\\\\Program Files (x86)\\\\*.exe\",\n          \"\\\\Device\\\\HarddiskVolume*\\\\Program Files\\\\*.exe\"\n        ) and\n  not (process.executable : \"?:\\\\Windows\\\\Installer\\\\MSI*.tmp\" and process.parent.name : \"msiexec.exe\") and\n  not (process.hash.sha256 == \"505d886fff0542f600f8534d9691de02200b719f1b80487a84fa799e1b178696\" and\n       process.executable == \"C:\\\\spmwin\\\\regasm32.exe\") and\n  not (process.parent.executable : \"C:\\\\Program Files (x86)\\\\360\\\\Total Security\\\\safemon\\\\QHActiveDefense.exe\" and\n       process.pe.original_file_name == \"RUNDLL32.EXE\" and process.args : \"360ExtremeBrowserURL\") and\n  not (process.name : \"regasm.x64.exe\" and process.parent.executable : \"C:\\\\Program Files (x86)\\\\Common Files\\\\Inlite\\\\InliteControlCenter.exe\") and\n  not (process.pe.original_file_name == \"cscript.exe\" and process.parent.executable : \"C:\\\\Program Files (x86)\\\\Net Protector *\\\\NPDBKWTT.EXE\") and\n  not (\n       process.executable : (\n         \"?:\\\\ProgramData\\\\Package Cache\\\\VSTACleanupOldRegistryBundlex64\\\\cmd_x64.exe\",\n         \"?:\\\\ProgramData\\\\Package Cache\\\\VSTACleanupOldRegistryBundlex86\\\\cmd_x86.exe\",\n         \"?:\\\\ProgramData\\\\Package Cache\\\\CleanupOldRegistryBundlex86\\\\cmd_x86.exe\",\n         \"?:\\\\ProgramData\\\\Package Cache\\\\CleanupOldRegistryBundlex64\\\\cmd_x64.exe\"\n       ) and\n       process.parent.name : (\"vsta_setup.exe\", \"vsta_sdk.exe\")\n     ) and\n  not process.parent.executable : (\"C:\\\\Program Files (x86)\\\\360\\\\Total Security\\\\safemon\\\\QHSafeTray.exe\",\n                                   \"C:\\\\Program Files (x86)\\\\360\\\\Total Security\\\\safemon\\\\QHActiveDefense.exe\")\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

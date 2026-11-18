@@ -1,0 +1,113 @@
+id: "2d5d9b4b-01ac-41c4-b5c2-6a9d1fe93aae_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    Detects a potential local privilege escalation from a suspicious descendant process. This rule checks for an exec event
+    as uid=0 (root), as a descendant of a suspicious process execution by a non-root user from a user- or world-writeable
+    directory. This may indicate the execution of a potential local privilege escalation exploit.
+  rule_id: "2d5d9b4b-01ac-41c4-b5c2-6a9d1fe93aae"
+  license: Elastic License v2
+  name: Potential Local Privilege Escalation via a Suspicious Descendant Process
+  os_list:
+    - linux
+  version: "1.0.8"
+  query: |
+    process where event.type == "start" and event.action == "exec" and process.interactive == true and
+    user.id == 0 and (
+      process.parent.user.id >= 1000 or
+      process.parent.user.name in (
+        "apache", "www-data", "httpd", "nginx", "lighttpd", "tomcat", "tomcat8", "tomcat9", "ftp", "ftpuser", "ftpd"
+      )
+    ) and (
+      process.parent.group.id >= 1000 or
+      process.parent.group.name in (
+        "apache", "www-data", "httpd", "nginx", "lighttpd", "tomcat", "tomcat8", "tomcat9", "ftp", "ftpuser", "ftpd"
+      )
+    ) and
+    not process.executable in ("/usr/bin/sudo", "/bin/sudo", "/tmp/newroot/newroot/newroot/usr/bin/sudo", "/tmp/newroot/usr/bin/sudo") and
+    (
+      descendant of [
+        process where event.type == "start" and event.action == "exec" and user.id != 0 and
+        process.executable like (".*", "/tmp/*", "/dev/shm/*", "/var/tmp/*", "/home/*/*", "/run/user/*", "/var/run/user/*")
+      ] or
+      process.parent.executable like (".*", "/tmp/*", "/dev/shm/*", "/var/tmp/*", "/home/*/*", "/run/user/*", "/var/run/user/*") or
+      process.executable like (".*", "/tmp/*", "/dev/shm/*", "/var/tmp/*", "/home/*/*", "/run/user/*", "/var/run/user/*")
+    ) and
+    not (
+      process.parent.executable like (
+        "/home/*/.conda/envs/fmf_server_agent/bin/python*", "/home/*/.local/share/uv/python/cpython-*-linux-x86_64-gnu/bin/python*",
+        "/home/*/.local/share/mise/installs/node/*/bin/node", "/usr/local/bin/tm_sandbox", "./merged/var/lib/containers/storage/overlay/*",
+        "/home/*/.local/share/containers/storage/overlay/*", "/home/*/Downloads/*/balena-etcher", "/opt/brave.com/brave/brave", "/var/lib/snapd/snap/node/*/bin/node",
+        "/home/linuxbrew/.linuxbrew/Cellar/*", "/home/*/.npm-global/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe",
+        "/oracle/KG2/*/bin/oracle", "/home/*/.codex/*/bin/codex", "/home/*/.please/*/please", "/opt/microsoft/msedge/msedge",
+        "/usr/local/bin/obsidian", "/home/*/.opencode/bin/opencode", "/usr/local/bin/cursor", "/usr/share/code/code", "/usr/share/codium/codium",
+        "/home/*/.cursor/extensions/openai.chatgpt-*/bin/linux-x86_64/codex", "/opt/tivoli/tsm/server/bin/servermon/servermon"
+      ) or
+      process.executable like (
+        "/usr/bin/mount", "/usr/bin/fusermount3", "/tmp/newroot/usr/bin/sudo", "/usr/bin/nvidia-modprobe", "/usr/bin/fusermount",
+        "/snap/core/*/usr/lib/snapd/snap-confine", "/usr/bin/newuidmap", "/usr/bin/newgidmap", "/opt/google/chrome-beta/chrome-sandbox",
+        "/usr/libexec/singularity/bin/starter-suid", "/usr/lib/cargo/bin/sudo", "/run/user/*/.bubblewrap/*", "/tmp/newroot/newroot/usr/bin/sudo",
+        "/tmp/newroot/usr/bin/su", "/tmp/newroot/usr/bin/fusermount3", "/tmp/newroot/usr/bin/fusermount", "/usr/bin/vmware-user-suid-wrapper",
+        "/tmp/newroot/usr/lib/polkit-1/polkit-agent-helper-1", "/usr/bin/ping", "/bin/crontab", "/usr/bin/tcpdump", "/tmp/newroot/usr/sbin/grub2-set-bootflag",
+        "/tmp/newroot/newroot/newroot/usr/lib/xorg/Xorg.wrap", "/home/*/chrome-sandbox", "/usr/lib/polkit-1/polkit-agent-helper-1", "/home/*/sqllib/adm/db2syscr",
+        "/home/*/sqllib/adm/db2stop", "/home/*/sqllib/adm/db2start", "/usr/lib/xorg/Xorg.wrap", "/usr/local/sbin/uid_gid_mapping",
+        "/home/*/.crc/bin/crc-admin-helper-linux-amd64", "/usr/bin/sg", "/usr/bin/crontab", "/sas/*/bin/elssrv", "/usr/lpp/mmfs/bin/tslsquota",
+        "/usr/lib/snapd/snap-confine", "/u01/*/client/scheduler/execution_agent/bin/jssu", "./merged/home/*/.local/share/containers/storage/overlay/*",
+        "/tmp/newroot/usr/share/antigravity/chrome-sandbox", "/usr/lib/x86_64-linux-gnu/singularity/bin/starter-suid", "/home/*/cdunix/ndm/bin/ndmumgr",
+        "/tmp/newroot/usr/lib/xorg/Xorg.wrap", "/usr/bin/apt-get", "/usr/bin/install", "/usr/bin/pkexec", "/usr/bin/containerlab", "/usr/bin/kmod",
+        "/usr/bin/newgrp", "/usr/lib/virtualbox/VBoxHeadless", "/bin/fusermount", "/usr/lib/virtualbox/VBoxNetAdpCtl", "/home/db2inst2/sqllib/adm/db2chparm",
+        "/home/db2inst1/sqllib/adm/db2chparm", "/usr/bin/netstat", "/usr/lib/authbind/helper", "/usr/lib/vmware/bin/vmware-vmx", "/usr/libexec/Xorg.wrap",
+        "/home/db2inst2/sqllib/adm/db2pd", "/usr/lib/chromium/chrome-sandbox", "/usr/lib/virtualbox/VBoxVolInfo", "/usr/lib/virtualbox/VBoxNetDHCP",
+        "/usr/lib/virtualbox/VirtualBoxVM", "/usr/share/code/chrome-sandbox", "/opt/google/chrome/chrome-sandbox", "/usr/local/sbin/chrome-devel-sandbox",
+        "/opt/BlinkBlink/chrome-sandbox", "/opt/DataBackup/ProtectClient/ProtectClient-E/sbin/rootexec"
+      ) or
+      process.parent.command_line like "*/home/*/.claude/shell-snapshots/snapshot-*" or
+      process.command_line == "newgrp docker" or
+      process.parent.args like ("/home/*/.vscode-server/cli/servers/Stable-*", "/home/*/.cursor-server/bin/*", "pkexec*") or
+      (process.name == "pkexec" and process.args in ("apt-get", "/usr/bin/rpm")) or
+      (process.parent.executable like "/home/*/bin/san" and process.executable == "/bin/mount") or
+      (process.parent.executable like "/tmp/newroot/*" and process.executable like "/tmp/newroot/*") or
+      (process.parent.executable == "/usr/bin/i3lock" and process.executable == "/usr/bin/unix_chkpwd") or
+      (
+        process.executable == "/bin/fusermount" and
+        process.parent.executable like ("/home/*/.local/bin/nvim", "/home/*/bin/Obsidian-*.AppImage")
+      ) or
+      (
+        process.executable == "/opt/google/chrome/chrome-sandbox" and
+        process.parent.executable == "/opt/google/chrome/chrome"
+      ) or
+      (
+        process.executable == "/usr/share/cursor/chrome-sandbox" and
+        process.command_line == "/usr/share/cursor/chrome-sandbox /usr/share/cursor/cursor --type=zygote"
+      ) or
+      (
+        process.command_line == "netstat -ant" and
+        process.parent.command_line == "/home/uniagent/bin/start.sh agentmain"
+      ) or
+      process.parent.executable like "*/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex" or
+      process.parent.command_line like (
+        "cursor --force --install-extension anthropic.claude-code",
+        "*/codium * /home/*/.claude/skills/*"
+      )
+    )
+  min_endpoint_version: "8.2.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1068
+          name: Exploitation for Privilege Escalation
+          reference: "https://attack.mitre.org/techniques/T1068/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.2.0"

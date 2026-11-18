@@ -1,0 +1,74 @@
+id: b0a0d293-f85e-4994-97e6-95541c0bc181_1.0.33
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of a process via Windows Management Instrumentation (WMI) and with an unusual effective parent.
+    Adversaries may abuse Windows Management Instrumentation (WMI) to execute malicious commands and payloads.
+  rule_id: b0a0d293-f85e-4994-97e6-95541c0bc181
+  license: Elastic License v2
+  name: Execution via a Suspicious WMI Client
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/spring-cleaning-with-latrodectus"
+  version: "1.0.33"
+  query: "process where event.action == \"start\" and\n  process.parent.name :\"WmiPrvSE.exe\" and\n   (\n    process.Ext.effective_parent.name : (\"excel.exe\", \"powerpnt.exe\", \"winword.exe\", \"mshta.exe\",\n                                         \"wscript.exe\", \"rundll32.exe\", \"regsvr32.exe\",\n                                         \"msbuild.exe\", \"InstallUtil.exe\") or\n    process.Ext.effective_parent.executable : (\"?:\\\\Users\\\\Public\\\\*\", \"?:\\\\ProgramData\\\\*\", \"?:\\\\Users\\\\*\\\\AppData\\\\*\", \"?:\\\\Windows\\\\Microsoft.NET\\\\*\")\n    ) and \n  not (user.id : \"S-1-5-18\" and process.name : \"powershell.exe\") and\n  not process.hash.sha256 : \n             (\"0e692d9d3342fdcab1ce3d61aed0520989a94371e5898edb266c92f1fe11c97f\", \n              \"8ee339af3ce1287066881147557dc3b57d1835cbba56b2457663068ed25b7840\", \n              \"f27cb78f44fc8f70606be883bbed705bd1dd2c2f8a84a596e5f4924e19068f22\") and\n  not (process.name : \"powershell.exe\" and process.args : \"C:\\\\Windows\\\\TEMP\\\\RestartHealthService.ps1\" and\n       process.args : \"60\" and process.args : \"1\" and\n       not process.Ext.effective_parent.name : (\"excel.exe\", \"powerpnt.exe\", \"winword.exe\")) and\n\n  not (process.code_signature.subject_name : (\"Immense Networks LLC\", \"Synology Inc.\", \"Xerox Corporation\", \"Beijing Qihu Technology Co., Ltd.\") and\n       process.code_signature.trusted == true) and\n\n  not (process.args : \"?:\\\\Windows\\\\TEMP\\\\RestartHealthService.js\" and process.args : \"60\" and user.id : \"S-1-5-18\" and\n       process.Ext.effective_parent.name : \"cscript.exe\") and\n\n  /* ansible */\n  not (process.name : \"powershell.exe\" and\n       process.command_line : \"*CgAgACAAIAAgAHQAcgBhAHAAIAB7AAoAIAAgACAAIAAgACAAIAAgACQAdwByAGEAcABwAGUAcgBfAHAAYQB0AGgAIAA9ACAAIgAkACgAJABlAG4AdgA6AFQARQBNAFAAKQBcAGEAbgBzAGkAYgBsAGUALQBhAHMAeQBuAGMALQB3AHIAYQBwAHAAZQByAC0AZ*\") and\n\n  not (process.name : \"powershell.exe\" and\n       process.command_line : (\"powershell.exe -WindowStyle \\\"Hidden\\\" -Command \\\"Enable-PSRemoting -Force\\\"\",\n                               \"powershell.exe -WindowStyle \\\"Hidden\\\" -Command \\\"Set-WSManQuickConfig -Force\\\"\",\n                               \"powershell.exe -WindowStyle \\\"Hidden\\\" -Command \\\"WinRM QuickConfig -Quiet -Force\\\"\")) and\n  not process.executable :\n             (\"?:\\\\Windows\\\\System32\\\\WerFault.exe\",\n              \"?:\\\\Windows\\\\SysWOW64\\\\WerFault.exe\",\n              \"?:\\\\Windows\\\\System32\\\\typeperf.exe\",\n              \"?:\\\\Program Files*\\\\Adobe\\\\Acrobat DC\\\\Acrobat\\\\AcroTray.exe\",\n              \"?:\\\\Program Files*\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\",\n              \"?:\\\\Program Files*\\\\Mozilla Firefox\\\\firefox.exe\",\n              \"\\\\Device\\\\Mup\\\\*.exe\") and\n  not (process.name : \"cmd.exe\" and\n       process.args : (\"\\\\\\\\*\\\\netlogon\\\\logon.cmd\",\n                       \"?:\\\\ProgramData\\\\Package Cache\\\" %a in (cybereasonsensor.exe)*\",\n                       \"(x86)\\\\EOG\\\\iFileMenu\\\\iFileMenu.bat\"))\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1047
+          name: Windows Management Instrumentation
+          reference: "https://attack.mitre.org/techniques/T1047/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.004
+              name: InstallUtil
+              reference: "https://attack.mitre.org/techniques/T1218/004/"
+            - id: T1218.005
+              name: Mshta
+              reference: "https://attack.mitre.org/techniques/T1218/005/"
+            - id: T1218.009
+              name: Regsvcs/Regasm
+              reference: "https://attack.mitre.org/techniques/T1218/009/"
+            - id: T1218.010
+              name: Regsvr32
+              reference: "https://attack.mitre.org/techniques/T1218/010/"
+            - id: T1218.011
+              name: Rundll32
+              reference: "https://attack.mitre.org/techniques/T1218/011/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

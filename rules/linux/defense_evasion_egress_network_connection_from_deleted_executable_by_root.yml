@@ -1,0 +1,43 @@
+id: "49ab63a4-ed52-49ac-855b-c298b38b0cb9_1.0.21"
+type: security-rule
+attributes:
+  description: |
+    This rule detects network connections initiated by a process that has been deleted from the filesystem. This behavior
+    may indicate an attempt to evade detection by removing the malicious executable after execution.
+  rule_id: "49ab63a4-ed52-49ac-855b-c298b38b0cb9"
+  license: Elastic License v2
+  name: Egress Network Connection from Deleted Executable by Root
+  os_list:
+    - linux
+  version: "1.0.21"
+  query: "network where event.type == \"start\" and event.action == \"connection_attempted\" and process.executable like \"* (deleted)\" and \nuser.id == 0 and\nnot (\n  destination.ip == null or destination.ip == \"0.0.0.0\" or cidrmatch(\n    destination.ip, \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \"192.0.0.0/24\", \"192.0.0.0/29\",\n    \"192.0.0.8/32\", \"192.0.0.9/32\", \"192.0.0.10/32\", \"192.0.0.170/32\", \"192.0.0.171/32\", \"192.0.2.0/24\",\n    \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.168.0.0/16\", \"192.88.99.0/24\", \"224.0.0.0/4\", \"100.64.0.0/10\",\n    \"192.175.48.0/24\",\"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\", \"240.0.0.0/4\", \"::1\", \"FE80::/10\",\n    \"FF00::/8\"\n  ) or\n  process.executable like~ (\n    \"/usr/bin/*\", \"/bin/*\", \"/opt/*\", \"/home/*\", \"/usr/share/*\", \"/usr/lib/*\", \"/usr/libexec/*\", \"/run/k3s/*\",\n    \"/var/lib/waagent/*\", \"/usr/local/bin/*\", \"/sbin/*\", \"/usr/sbin/*\", \"/usr/local/sbin/*\", \"/usr/local/lib/*\",\n    \"/usr/lib64/*\", \"/var/tmp/go-build*\", \"/app/extra/slack*\", \"/projects/hash-manager/dist/*/hash-manager*\",\n    \"/nextcloud/custom_apps/notify_push/bin/x86_64/notify_push*\", \"/usr/local/lad/bin/mdsd*\",\n    \"/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/longhorn*\", \"/tmp/*/bin/kilo*\",\n    \"/root/.antigravity-server/bin/*/extensions/antigravity/bin/language_server_linux_x64*\",\n    \"/root/.vscode-server/code-*\", \"/root/.opencode/bin/opencode*\",\n    \"/root/.local/share/claude/versions/*\", \"/home/*/.local/share/claude/versions/*\"\n  ) or\n  process.name in (\"dockerd\", \"teleport\", \"zed-editor\", \"datacollector\", \"exe\") or\n  process.executable like \"*/node_modules/@anthropic-ai/*claude-code*/bin/claude.exe*\"\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1211
+          name: Exploitation for Defense Evasion
+          reference: "https://attack.mitre.org/techniques/T1211/"
+        - id: T1564
+          name: Hide Artifacts
+          reference: "https://attack.mitre.org/techniques/T1564/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

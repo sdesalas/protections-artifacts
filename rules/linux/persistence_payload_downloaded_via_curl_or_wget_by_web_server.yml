@@ -1,0 +1,76 @@
+id: aac41cc3-fc4a-4dea-b8d6-252ded1cb3fc_1.0.10
+type: security-rule
+attributes:
+  description: |
+    This rule detects when a web server downloads a payload via curl or wget. Attackers may exploit RCE or file upload
+    vulnerabilities to download malicious files to web servers to gain/maintain access and to establish a command and
+    control channel.
+  rule_id: aac41cc3-fc4a-4dea-b8d6-252ded1cb3fc
+  license: Elastic License v2
+  name: Payload Downloaded via Curl or Wget by Web Server
+  os_list:
+    - linux
+  version: "1.0.10"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.interactive == false and (\n  process.parent.name in (\n    \"nginx\", \"apache2\", \"httpd\", \"caddy\", \"mongrel_rails\", \"uwsgi\", \"daphne\", \"httpd.worker\", \"flask\",\n    \"php-cgi\", \"php-fcgi\", \"php-cgi.cagefs\", \"lswsctrl\", \"varnishd\", \"uvicorn\", \"waitress-serve\", \"starman\",\n    \"frankenphp\", \"zabbix_server\", \"asterisk\", \"sw-engine-fpm\", \"lighttpd\", \"httpd-worker\",\n    \"httpd-prefork\", \"lshttpd\", \"litespeed\", \"openlitespeed\", \"fcgiwrap\", \"hypercorn\", \"granian\", \"puma\",\n    \"unicorn\", \"unicorn_rails\", \"thin\", \"rackup\", \"plackup\", \"twiggy\", \"hypnotoad\", \"starlet\", \"unitd\",\n    \"unitd-debug\", \"gitea\"\n  ) or\n  process.parent.name like (\"php-fpm*\", \"gunicorn*\", \"*.cgi\", \"*.fcgi\", \"lsphp*\") or\n  (\n    process.parent.name like \"ruby*\" and\n    process.parent.command_line like~ (\"*puma*\", \"*rails*\", \"*passenger*\") and\n    not process.command_line like \"*github.com/phusion/passenger/releases/download/release*\"\n  ) or\n  (process.parent.name like \"python*\" and process.parent.command_line like~ (\n    \"*hypercorn*\", \"*flask*\", \"*uvicorn*\", \"*django*\", \"*app.py*\", \"*server.py*\", \"*wsgi.py*\", \"*asgi.py*\"\n  )) or\n  (process.parent.name like \"perl*\" and process.parent.command_line like~ \"*plackup*\") or\n  (process.parent.name == \"node\" and process.parent.command_line like~ (\n    \"*next start*\", \"*--port*\", \"*PORT=*\", \"*HOST=*\", \"*0.0.0.0*\", \"*/dist/*.js*\", \"*/build/*.js*\", \"*/server/*.js*\",\n    \"*/app/*.js*\", \"*/apps/*/*.js*\", \"*/index.js*\", \"*/main.js*\", \"*/srv/*\", \"*/opt/*\", \"*/var/www/*\", \"*n8n*\"\n    ) and\n    not (\n      process.parent.args like (\n        \"/opt/cursor-agent/*\", \"/home/*/*\", \"/root/*\", \"/opt/vscode-server/*\", \"/usr/lib/node_modules/openclaw/dist/index.js\",\n        \"/home/*/.npm-global/lib/node_modules/openclaw/dist/index.js\", \"openclaw-gateway\"\n      ) or\n      process.parent.executable like \"/*/.cursor-server/bin/linux-x64/*/node\"\n    )\n  ) or\n  (process.parent.name == \"beam.smp\" and process.parent.executable like \"*/couchdb/*\") or\n  (process.parent.name in (\"java\", \"jsvc\", \"jstart\") and process.parent.args like~ (\n    /* Tomcat */\n    \"org.apache.catalina.startup.Bootstrap\", \"-Dcatalina.base=*\",\n\n    /* Jetty */\n    \"org.eclipse.jetty.start.Main\", \"-Djetty.home=*\",\n    \"*start.jar*\",\n    \"-Djetty.base=*\",\n\n    /* WildFly / JBoss */\n    \"org.jboss.modules.Main\", \"-Djboss.home.dir=*\",\n\n    /* WebLogic */\n    \"weblogic.Server\", \"-Dweblogic.Name=*\", \"*weblogic-launcher.jar*\",\n\n    /* WebSphere traditional + Liberty */\n    \"com.ibm.ws.runtime.WsServer\", \"com.ibm.ws.kernel.boot.cmdline.Bootstrap\",\n\n    /* GlassFish */\n    \"com.sun.enterprise.glassfish.bootstrap.ASMain\",\n    \"com.sun.enterprise.glassfish.bootstrap.GlassFishMain\",\n\n    /* Resin */\n    \"com.caucho.server.resin.Resin\",\n\n    /* Spring Boot */\n    \"org.springframework.boot.loader.*\",\n\n    /* Quarkus */\n    \"*quarkus-run.jar*\", \"io.quarkus.runner.GeneratedMain\",\n\n    /* Micronaut */\n    \"io.micronaut.runtime.Micronaut\",\n\n    /* Dropwizard */\n    \"io.dropwizard.cli.ServerCommand\",\n\n    /* Play */\n    \"play.core.server.ProdServerStart\",\n\n    /* Helidon */\n    \"io.helidon.microprofile.server.Main\", \"io.helidon.webserver*\",\n    \"io.helidon.Main\",\n    \"io.helidon.microprofile.cdi.Main\",\n\n    /* Vert.x */\n    \"io.vertx.core.Launcher\",\n    \"io.vertx.launcher.application.VertxApplication\",\n\n    /* Keycloak */\n    \"org.keycloak*\",\n    \"io.quarkus.bootstrap.runner.QuarkusEntryPoint\",\n    \"-Dkc.home.dir=*\",\n    \"-Dkc.script.pid=*\",\n\n    /* Apereo CAS */\n    \"org.apereo.cas*\",\n\n    /* Elasticsearch */\n    \"org.elasticsearch.bootstrap.Elasticsearch\",\n\n    /* Atlassian / Gerrit */\n    \"com.atlassian.jira.startup.Launcher\", \"*BitbucketServerLauncher*\", \"com.google.gerrit.pgm.Daemon\",\n\n    /* Solr */\n    \"*-Dsolr.solr.home=*\",\n\n    /* Jenkins */\n    \"*jenkins.war*\",\n\n    /* Ktor */\n    \"io.ktor.server.netty.EngineMain\",\n    \"io.ktor.server.cio.EngineMain\",\n    \"io.ktor.server.jetty.jakarta.EngineMain\",\n    \"io.ktor.server.tomcat.jakarta.EngineMain\",\n  \n\n    /* Payara Micro */\n    \"*payara-micro*.jar*\",\n\n    /* Karaf */\n    \"org.apache.karaf.main.Main\",\n    \"-Dkaraf.home=*\",\n    \"-Dkaraf.base=*\",\n\n    /* WSO2 */\n    \"org.wso2.carbon.bootstrap.Bootstrap\",\n\n    /* OpenSearch */\n    \"org.opensearch.bootstrap.OpenSearch\",\n    \"-Dopensearch.path.home=*\",\n\n    /* Sling / AEM */\n    \"*org.apache.sling*.jar*\",\n    \"*aem-author*.jar*\",\n    \"*aem-publish*.jar*\",\n    \"*aem-quickstart*.jar*\",\n    \"*cq-quickstart*.jar*\",\n\n    /* CAS */\n    \"*cas.war*\",\n\n    /* Legacy JBoss */\n    \"org.jboss.Main\",\n\n    /* SonarQube / Nexus */\n    \"org.sonar.server.app.WebServer\",\n    \"org.sonatype.nexus.karaf.NexusMain\"\n    )\n  )\n) and\nprocess.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\", \"busybox\") and\nprocess.args in (\"-c\", \"-cl\", \"-lc\") and\nprocess.command_line like (\"*wget *\", \"*curl *\") and\n(\n  process.command_line regex \".*[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}(:[0-9]{1,5})?/.*\" or\n  process.command_line like (\"*http*\", \"*ftp*\")\n) and\n(\n  (\n    process.command_line regex~ \"\"\".*curl.* \\-[a-zA-Z]*[oO]( .+|\\-.*)?\"\"\" or\n    process.command_line like~ (\"*curl* --output*\", \"*curl* --remote-name*\")\n  ) or\n  (\n    (\n      process.command_line regex~ \"\"\".*wget.* \\-[a-zA-Z]*O.*\"\"\" or\n      process.command_line like~ \"*wget* --output-document*\"\n    ) and\n  not process.command_line like \"\"\"*--output-document \"-\"*\"\"\"\n  ) or\n  process.command_line like (\"*|*sh*\", \"*|*python*\", \"*|*php*\", \"*|*perl*\", \"*|*ruby*\", \"*|*node*\", \"*|*lua*\", \"*|*busybox*\") or\n  (\n    process.command_line like (\"*curl *>> /*\", \"*curl *>>/*\", \"*curl *> /*\", \"*curl *>/*\", \"*wget *>> /*\", \"*wget *>>/*\", \"*wget *> /*\", \"*wget *>/*\") and\n    not process.command_line like (\"*> /dev/null*\", \"*>/dev/null*\", \"*curl*/etc/cobra/*/uploads/whatsapp/*\")\n  )\n) and\nnot (\n  process.command_line like (\n    \"*-O /dev/null*\", \"*-o /dev/null*\", \"*wget -qcO --user-agent=*\", \"*curl * | python -m json.tool\",\n    \"*http://:8008/dacx/fileoperation*\", \"*http://${host}:9000/api/system/liveness*\"\n  ) or\n  (process.parent.name == \"ruby\" and process.command_line like \"*/tmp/passenger-native-support-*\") or\n  (process.parent.name == \"asterisk\" and process.command_line like \"*bapi.*.group/v2/call/outgoing*\") or\n  (process.parent.name == \"node\" and process.command_line like \"*/tmp/.claude/shell-snapshots/*\") or\n  (process.parent.name == \"apache2\" and process.command_line like \"*/var/www/html/cacti/dati/weathermap/*.jpg\") or\n  process.parent.executable like \"*/.vscode-server/cli/servers/*/server/node\"\n)\n"
+  min_endpoint_version: "8.2.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1190
+          name: Exploit Public-Facing Application
+          reference: "https://attack.mitre.org/techniques/T1190/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1505
+          name: Server Software Component
+          reference: "https://attack.mitre.org/techniques/T1505/"
+          subtechnique:
+            - id: T1505.003
+              name: Web Shell
+              reference: "https://attack.mitre.org/techniques/T1505/003/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1210
+          name: Exploitation of Remote Services
+          reference: "https://attack.mitre.org/techniques/T1210/"
+      tactic:
+        id: TA0008
+        name: Lateral Movement
+        reference: "https://attack.mitre.org/tactics/TA0008/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.2.0"

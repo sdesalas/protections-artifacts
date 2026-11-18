@@ -1,0 +1,41 @@
+id: "4f7b1362-1299-4ce7-8e02-03b74dad4eb1_1.0.6"
+type: security-rule
+attributes:
+  description: |
+    This rule detects the modification of registry settings that control how files are visualized to the user via Explorer.
+    Some malwares will modify those entries to hide malware related files.
+  rule_id: "4f7b1362-1299-4ce7-8e02-03b74dad4eb1"
+  license: Elastic License v2
+  name: Attempt to Hide Files via Registry Modification
+  os_list:
+    - windows
+  version: "1.0.6"
+  query: "registry where event.action == \"modification\" and process.executable != null and\n registry.key like \"S-*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Explorer\\\\Advanced\" and\n (\n  (registry.value == \"HideFileExt\" and registry.data.strings == \"1\") or\n  (registry.value == \"Hidden\" and registry.data.strings == \"2\") or\n  (registry.value == \"ShowSuperHidden\" and registry.data.strings == \"0\")\n  ) and\n  not process.executable :\n                (\"C:\\\\Windows\\\\system32\\\\svchost.exe\",\n                 \"C:\\\\Windows\\\\explorer.exe\",\n                 \"C:\\\\Windows\\\\regedit.exe\",\n                 \"C:\\\\Windows\\\\System32\\\\runonce.exe\",\n                 \"C:\\\\Windows\\\\System32\\\\ShellAppRuntime.exe\",\n                 \"C:\\\\Windows\\\\ImmersiveControlPanel\\\\SystemSettings.exe\",\n                 \"C:\\\\Windows\\\\System32\\\\SystemPropertiesPerformance.exe\",\n                 \"C:\\\\Windows\\\\System32\\\\SystemPropertiesAdvanced.exe\",\n                 \"C:\\\\Windows\\\\System32\\\\SystemPropertiesComputerName.exe\",\n                 \"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\n                 \"C:\\\\Program Files\\\\KEYENCE\\\\IM Editor2\\\\IMController.exe\",\n                 \"C:\\\\Program Files\\\\Streamline3\\\\1.7.1.2\\\\pxsvc.exe\", \n                 \"C:\\\\Windows\\\\System32\\\\reg.exe\", \n                 \"C:\\\\Windows\\\\System32\\\\regsvr32.exe\",\n                 \"C:\\\\$WINDOWS.~BT\\\\Sources\\\\SetupPlatform.exe\",\n                 \"C:\\\\ADP SmartCompliance PowerTool\\\\Compliance.exe\",\n                 \"D:\\\\USMT\\\\X64\\\\loadstate.exe\",\n                 \"C:\\\\Program Files\\\\*.exe\", \n                 \"C:\\\\Program Files (x86)\\\\*.exe\") and\nnot (process.code_signature.subject_name : (\"Cyberdigm. Corp.\", \"CYBERDIGM CO., LTD.\", \"Electronic Arts, Inc.\") and process.code_signature.trusted == true)\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1112
+          name: Modify Registry
+          reference: "https://attack.mitre.org/techniques/T1112/"
+        - id: T1564
+          name: Hide Artifacts
+          reference: "https://attack.mitre.org/techniques/T1564/"
+          subtechnique:
+            - id: T1564.001
+              name: Hidden Files and Directories
+              reference: "https://attack.mitre.org/techniques/T1564/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

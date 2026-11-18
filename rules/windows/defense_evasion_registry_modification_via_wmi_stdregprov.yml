@@ -1,0 +1,40 @@
+id: "325933f6-e0b9-4cd2-bc4f-a91d78f97f1d_1.0.9"
+type: security-rule
+attributes:
+  description: |
+    Identifies registry modification using the Windows Management Instrumentation SrdRegProv provider. Adversaries may
+    leverage WMI to modify system configuration via registry changes.
+  rule_id: "325933f6-e0b9-4cd2-bc4f-a91d78f97f1d"
+  license: Elastic License v2
+  name: Registry Modification via WMI StdRegProv
+  os_list:
+    - windows
+  version: "1.0.9"
+  query: "api where\n  process.Ext.api.name == \"IWbemServices::ExecMethod\" and user.id != \"S-1-5-18\" and\n   process.Ext.api.parameters.operation : \"*StdRegProv::SetStringValue*\" and\n\n   process.executable != \"C:\\\\Program Files (x86)\\\\GreenwayTR\\\\GMTGC.exe\" and\n\n   not (process.code_signature.trusted == true and\n        process.code_signature.subject_name in (\"Reason Cybersecurity Inc.\", \"Micro-Star International CO., LTD.\", \"Lansweeper NV\", \"LANSWEEPER NV\", \"YANDEX LLC\", \"Beijing Sogou Technology Development Co., Ltd.\", \"HP Inc.\", \"95895A1E-217A-4242-9200-7E698391758E\", \"Omnissa, LLC\", \"Beijing Kingsoft Security software Co.,Ltd\")) and\n       \n   not (process.executable == \"C:\\\\Windows\\\\SysWOW64\\\\wscript.exe\" and process.parent.executable == \"C:\\\\Windows\\\\SysWOW64\\\\cmd.exe\" and\n        process.command_line in (\"WSCRIPT /B parseXML.vbs base_agentdata.xml agentdata.xml\", \"WSCRIPT /B ae_scan.vbs agentdata\")) and\n\n  not (process.name : (\"wscript.exe\", \"cscript.exe\") and process.command_line : (\"*\\\\\\\\*\\\\netlogon\\\\*\", \"\\\"C:\\\\Windows\\\\system32\\\\wscript.exe\\\" \\\"C:\\\\Program Files (x86)\\\\RoomSeeker\\\\DBChange.vbs\\\"\")) and \n\n   not (process.executable == \"C:\\\\Windows\\\\System32\\\\wscript.exe\" and process.parent.executable == \"C:\\\\Windows\\\\System32\\\\gpscript.exe\") and\n\n   not (process.executable : \"C:\\\\Windows\\\\System32\\\\svchost.exe\" and process.parent.executable : \"C:\\\\Windows\\\\System32\\\\services.exe\") and\n\n   not process.executable : (\"C:\\\\Windows\\\\System32\\\\cscript.exe\",\n                             \"C:\\\\Windows\\\\SysWOW64\\\\cscript.exe\",\n                             \"C:\\\\Windows\\\\System32\\\\msiexec.exe\",\n                             \"C:\\\\Windows\\\\SysWOW64\\\\msiexec.exe\",\n                             \"C:\\\\Program Files (x86)\\\\Sage\\\\*.exe\") and\n   not process.parent.executable : (\"C:\\\\Program Files (x86)\\\\PCMatic\\\\PCPitstopScheduleService.exe\",\n                                    \"C:\\\\Program Files (x86)\\\\Sage\\\\Sage 100\\\\9.0\\\\Shared\\\\OLStart.exe\",\n                                    \"E:\\\\BELOFF_2O2O.O3L\\\\wpi\\\\WPI.exe\") and\n\n   not (process.code_signature.trusted == true and\n        process.code_signature.subject_name == \"Microsoft Windows\" and\n        process.executable : (\"C:\\\\Windows\\\\SysWOW64\\\\mshta.exe\", \"C:\\\\Windows\\\\System32\\\\mshta.exe\") and\n        process.command_line : \"*\\\\ProgramData\\\\ComCept\\\\*\") and\n\n   not (process.code_signature.trusted == true and\n        process.code_signature.subject_name == \"Microsoft Corporation\" and\n        process.executable : (\"C:\\\\Program Files (x86)\\\\Internet Explorer\\\\iexplore.exe\",\n                              \"C:\\\\Program Files\\\\Internet Explorer\\\\iexplore.exe\") and\n        process.parent.executable : (\"C:\\\\Program Files\\\\Internet Explorer\\\\iexplore.exe\",\n                                     \"C:\\\\Program Files (x86)\\\\Internet Explorer\\\\iexplore.exe\"))\n"
+  min_endpoint_version: "8.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1047
+          name: Windows Management Instrumentation
+          reference: "https://attack.mitre.org/techniques/T1047/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1112
+          name: Modify Registry
+          reference: "https://attack.mitre.org/techniques/T1112/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.15.0"

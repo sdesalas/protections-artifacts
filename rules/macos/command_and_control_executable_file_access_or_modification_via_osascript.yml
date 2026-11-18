@@ -1,0 +1,44 @@
+id: cb3fe671-de31-41f4-bf71-3a39b024fd0e_1.0.8
+type: security-rule
+attributes:
+  description: |
+    Detects when a executable file is accessed or modified by Osascript on macOS. This activity should be considered
+    malicious or highly suspicious and is indicative of initial access or tool ingress.
+  rule_id: cb3fe671-de31-41f4-bf71-3a39b024fd0e
+  license: Elastic License v2
+  name: Executable File Access or Modification via Osascript
+  os_list:
+    - macos
+  version: "1.0.8"
+  query: "file where event.action != \"deletion\" and \n file.Ext.header_bytes like~ (\"cffaedfe*\", \"cafebabe*\") and\n process.name == \"osascript\"\n"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.002
+              name: AppleScript
+              reference: "https://attack.mitre.org/techniques/T1059/002/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.10.2"

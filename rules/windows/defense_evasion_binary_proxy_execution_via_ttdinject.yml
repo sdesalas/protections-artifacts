@@ -1,0 +1,34 @@
+id: "658efff4-b1b7-4ab7-ba1f-7ce295d3df05_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of a binary via the Time Traver Debugging Application Injector utility. Adversaries may bypass
+    process and signature-based defenses by proxying execution of malicious content with signed, or otherwise trusted,
+    binaries.
+  rule_id: "658efff4-b1b7-4ab7-ba1f-7ce295d3df05"
+  license: Elastic License v2
+  name: Binary Proxy Execution via TTDInject
+  os_list:
+    - windows
+  reference:
+    - "https://lolbas-project.github.io/lolbas/Binaries/Ttdinject/"
+  version: "1.0.5"
+  query: "process where event.action == \"start\" and \n (\n (process.parent.name : \"TTDInject.EXE\" and process.parent.args : \"/Launch\") or \n (process.pe.original_file_name : \"TTDInject.EXE\" and process.args : \"/Launch\" and\n  not process.executable : \"?:\\\\Windows\\\\Sys*\\\\ttdinject.exe\")\n )\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,47 @@
+id: f1a2b3c4-d5e6-4789-a012-3456789abcde_1.0.1
+type: security-rule
+attributes:
+  description: |
+    Identifies PowerShell script execution where the hosting process is ConfigurationRemotingServer.exe (the WinGet
+    Configuration remoting worker). This may indicate the abuse of the WinGet Configuration COM API to run
+    attacker-controlled DSC through Microsoft-signed binaries.
+  rule_id: f1a2b3c4-d5e6-4789-a012-3456789abcde
+  license: Elastic License v2
+  name: PowerShell Execution from WinGet Configuration Remoting Server
+  os_list:
+    - windows
+  reference:
+    - "https://github.com/DylanDavis1/DSCourier"
+  version: "1.0.1"
+  query: "api where process.name : \"ConfigurationRemotingServer.exe\" and\n  process.Ext.api.name == \"AmsiScanBuffer\" and\n  process.Ext.api.parameters.app_name == \"PowerShell\" and \n  not process.Ext.api.parameters.buffer in (\"$false\", \"$PSHome\") and \n  not process.Ext.api.parameters.content_name : \n               (\"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Microsoft\\\\WinGet\\\\Configuration\\\\Modules\\\\PSDesiredStateConfiguration\\\\*.psm1\", \n                \"?:\\\\Program Files\\\\WindowsApps\\\\Microsoft.DesktopAppInstaller_*.psm1\") and \n  not (process.Ext.api.parameters.size >= 20000 and process.Ext.api.parameters.buffer : \"################*Microsoft Corporation*##############*\") and  \n  not (process.Ext.api.parameters.size == 1782 and process.Ext.api.parameters.buffer : \"*Localized MSFT_ScriptResource.strings.psd1*\")\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.001
+              name: PowerShell
+              reference: "https://attack.mitre.org/techniques/T1059/001/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.16.0"

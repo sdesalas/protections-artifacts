@@ -1,0 +1,79 @@
+id: "3ac60981-20ef-4dac-b7e4-aad2ac56a93e_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    This rule detects the execution of suspicious commands and executables by systemd scheduled tasks. Threat actors may
+    abuse these scheduled tasks to execute malicious commands or scripts to maintain persistence or escalate privileges.
+  rule_id: "3ac60981-20ef-4dac-b7e4-aad2ac56a93e"
+  license: Elastic License v2
+  name: Unusual Command Execution via Systemd Scheduled Task
+  os_list:
+    - linux
+  reference:
+    - "https://pberba.github.io/security/2022/01/30/linux-threat-hunting-for-persistence-systemd-timers-cron/"
+    - "https://www.elastic.co/security-labs/primer-on-persistence-mechanisms"
+  version: "1.0.8"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.name == \"systemd\" and \nprocess.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\", \"busybox\", \"pwsh\", \"mksh\") and\nprocess.args in (\"-c\", \"--command\", \"-lc\", \"-cl\") and (\n  process.command_line like~ (\n\n    /* Encoding, Decoding & Piping */\n    \"*|sh\", \"*| sh *\", \"*| sh \", \"*|bash*\", \"*| bash*\", \"*|zsh*\",  \"*| zsh*\", \"*|dash*\",  \"*| dash*\",\n    \"*|python*\", \"*| python*\", \"*|php*\", \"*| php*\", \"*|perl*\", \"*| perl*\", \"*|ruby*\", \"*| ruby*\",\n    \"*|node*\", \"*| node*\", \"*|lua*\",  \"*| lua*\", \"*|busybox*\", \"*| busybox*\", \"*|*base64 -d*\", \"*|*base64 --decode*\",\n    \"*|*openssl base64 -d*\", \"*xxd *\", \"*| openssl*enc * -d *\", \"*b64decode -r*\",\n\n    /* Reverse Shell CLIs */\n    \"*/dev/tcp*\", \"*/dev/udp/*\", \"*import*pty*spawn*\", \"*import*subprocess*call*\", \"*TCPSocket.new*\", \"*TCPSocket.open*\",\n    \"*io.popen*\", \"*os.execute*\", \"*fsockopen*\", \"*socat*exec:*\", \"*socat*tcp-connect*\",\n\n    /* File Manipulation */\n    \"*/dev/shm/*\",\n    \"*> /tmp/*\", \"*>> /tmp/*\", \"*>/tmp/*\", \"*>>/tmp/*\",  \n    \"*> /var/tmp/*\", \"*>> /var/tmp/*\", \"*>/var/tmp/*\", \"*>>/var/tmp/*\",\n    \"*> /run/user/*\", \"*>> /run/user/*\", \"*>/run/user/*\", \"*>>/run/user/*\",\n    \"*> /var/run/user/*\", \"*>> /var/run/user/*\", \"*>/var/run/user/*\", \"*>>/var/run/user/*\",\n\n    /* Persistence */\n    \"*>*/etc/cron*\", \"*>*/home/*/.ssh/*\", \"*>*/root/.ssh*\", \"*>*~/.ssh/*\", \"*>*/etc/shadow*\", \"*>*/etc/passwd*\",\n    \"*>*/etc/master.passwd*\", \"*chpasswd*\", \"*NOPASSWD:ALL*>*sudoers.d*\", \"*>*/etc/systemd/system/*[Unit]*ExecStart*\",\n    \"*| crontab -*\",\n\n    /* Miscellaneous */\n    \"* setsid *\", \"*timeout *sh -c *\", \"*disown*\",  \"*chattr *\", \"busybox *\", \"*chmod +x *\", \"*chmod 777*\", \n    \"*<?php*?>*\", \"*kworker*\", \"*stty*raw*-echo*\", \"*mkfifo /tmp/*\"\n  ) or\n  (\n    process.command_line like (\"*curl *\", \"*wget *\") and (\n      process.command_line regex~ \"\"\".*curl.* \\-[a-zA-Z]*[oO]( .+|\\-.*)?\"\"\" or\n      process.command_line like~ (\"*curl* --output*\", \"*curl* --remote-name*\") or\n      process.command_line regex~ \"\"\".*wget.* \\-[a-zA-Z]*O.*\"\"\" or\n      process.command_line like~ \"*wget* --output-document*\" or\n      process.command_line like (\"*|*sh*\", \"*|*python*\", \"*|*php*\", \"*|*perl*\", \"*|*ruby*\", \"*|*node*\", \"*|*lua*\", \"*|*busybox*\") or\n      process.command_line like (\"*curl *>> /*\", \"*curl *>>/*\", \"*curl *> /*\", \"*curl *>/*\", \"*wget *>> /*\", \"*wget *>>/*\", \"*wget *> /*\", \"*wget *>/*\") or\n      process.command_line regex \".*[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}(:[0-9]{1,5})?/.*\"\n    )\n  )\n) and \nnot (\n  process.command_line like (\n    \"*localhost*\", \"*127.0.0.1*\", \"*>*/run/*.pid\", \"*>*/tmp/*.log*\", \"*/etc/init.d/mailman*\", \"/bin/sh -c /var/www/MISP/app/Console/*> /tmp/cronlog 2>&1\",\n     \"\"\"/bin/bash -c echo \"\" > /tmp/stdout && echo \"\" > /tmp/stderr\"\"\", \"/bin/sh -c /usr/bin/curl -s http://scripts.*.lan:8080/*\",\n    \"\"\"/bin/sh -c echo \"Define current_date $(date -I)\" > /var/www/current_date.conf; service apache2 reload\"\"\", \"*api.github.com/meta*\", \"*/opt/commvault/*\",\n    \"/bin/sh -c curl -s https://tools.*.ch/vuls.sh | bash -s\", \"/bin/sh -c curl -ks https://*:7443/users/heartbeat > /dev/null || exit 1\",\n    \"*test*\", \"*grep*\", \"*logger*\", \"/bin/sh -c curl --user*.log\", \"/bin/sh -c /dev/shm/pty3 > /dev/null 2>&1 &\", \"/bin/sh -c*backup.sh*logToFile.sh\",\n    \"/bin/sh -c /home/*/sub/backup-archivelogs.sh*\", \"*/usr/bin/curl -s https://check.torproject.org/torbulkexitlist*\", \"*/run/cloud-init/share/*.sock*\",\n    \"sh -c ldd /var/tmp/dracut*/initramfs/usr/bin/mkfifo*\", \"*cpanel*.zendesk.com/api/v2/ticket_metrics.json*, *fortigate-backup.sh*hc-ping.com*\",\n    \"/bin/sh -c curl -sSL https://*/scripts/linux/syslog-archival/report_syslog_v3.sh | bash -x > /var/log/report_syslog_v3.debug.out 2>&1\",\n    \"/bin/sh -c curl -s https://*/retrieve-validca.sh | bash -s /data/certificate > /data/log/valica.log 2>&1 && supervisorctl apache2 reload >>/data/log/valica.log 2>&1\",\n    \"bash -c chmod +x /opt/forticlientems/bin/ubuntu24_upgrade_check.sh && /opt/forticlientems/bin/ubuntu24_upgrade_check.sh\", \"/bin/sh -c /bin/chmod 777 /upload/cms-embossing/*\",\n    \"\"\"/bin/sh -c /usr/bin/timeout 60 /bin/sh -c 'while ! /usr/bin/timeout 1 /usr/bin/host www.*.com >/dev/null 2>&1; do /bin/sleep 0.1; done' && /bin/echo \"DNS works!\"\"\"\",\n    \"*.gr/index.php?option=com_acymailing&ctrl=cron*\", \"*_sync_last_success_timestamp_seconds*:9091/metrics*\", \"*get.upwind.io/sensor.sh*\",\n    \"*/opt/traps/download/contents/*/km_extractor*\", \"/bin/sh -c /usr/bin/wget -O - -q -t 1 http://*/?wlmcron=1\",\n    \"/bin/bash -c wget -O /dev/null https://*/api/cronjob_late_fee_fine >/dev/null 2>&1\",\n    \"/bin/bash -c wget -O /dev/null https://*/system_admin/c_cron/school_package_subscription_cron >/dev/null 2>&1\",\n    \"/bin/bash -c wget -O /dev/null https://*/system_admin/c_cron/db_backup >/dev/null 2>&1\",\n    \"\"\"/bin/bash -c /usr/bin/curl -k --location --request PUT \"https://172.*/federatedtokenmanager/token\" >> /var/logs/federated_token_manager/curl.log 2>&1\"\"\"\n  ) or\n  process.command_line in (\n    \"/bin/sh -c /usr/bin/flock -n /dev/shm/loadwatch.lock -c /usr/local/lp/bin/loadwatch &> /dev/null\",\n    \"/bin/sh -c curl -L https://chef.io/chef/install.sh | bash\", \"sh -c ldd /usr/bin/mkfifo 2>&1\",\n    \"/bin/bash -c curl -fs https://get.upwind.io/sensor.sh | bash -s -- upgrade\",\n    \"/bin/bash -c curl -s https://get.upwind.io/sensor.sh | bash -s -- upgrade\",\n    \"/bin/sh -c /opt/arcsight/backup_local/backup.sh || /opt/arcsight/backup_local/backup_error.sh\",\n    \"\"\"/usr/bin/sh -c echo date=$(date +\"%Y%m%d\") > /dev/shm/mag/sptwweb.env\"\"\",\n    \"/bin/bash -c curl -fsSLO https://get.upwind.io/sensor.sh && echo \\\"$(curl -fsSL https://get.upwind.io/sensor.sh.sha256)  sensor.sh\\\" | sha256sum -c - && bash sensor.sh upgrade\",\n    \"/bin/bash -lc timeout 45 /usr/bin/claude --model claude-haiku-4-5 -p \\\"reply: pong\\\" > /tmp/claude-quota-refresh.last 2>&1 || true\",\n    \"/bin/sh -c echo \\\"$(date) $(whoami)\\\" >>/tmp/log\"\n  ) or\n  process.args like (\n    \"[ ! -e *\", \"ansible *\", \"php -q /var/www/*php > /tmp/datastore*\", \"wget --proxy=off*cat*batch_trigger.log\",\n    \"sudo curl*raw.githubusercontent.com/*/backup-scripts/refs/heads/main/fortigate-backup.sh*\",\n    \"/usr/bin/curl -s -H*zendesk.com/api/v2/ticket_metrics.json*\", \"export PM2_HOME=*\",    \n    \"/usr/bin/curl*/var/log/checkdiskusage.log\", \"ps*/opt/fortinet/fortisiem/linux-agent/tmp/*\",\n    \"iostat*/tmp/iostat.cache\", \"/usr/local/psa/admin/sbin/modules/aast-dnssec/event*\",\n    \"export PATH=/opt/imunify360/venv/bin*alt-php-els/install-els-alt-php-deb-repo.sh*\",\n    \"echo BAS_SERVICE_MARKER > /tmp/bas_service_exec_marker.txt\"\n  ) or \n  process.working_directory like \"/opt/nessus_agent/*\"\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.002
+              name: Systemd Service
+              reference: "https://attack.mitre.org/techniques/T1543/002/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.002
+              name: Systemd Service
+              reference: "https://attack.mitre.org/techniques/T1543/002/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

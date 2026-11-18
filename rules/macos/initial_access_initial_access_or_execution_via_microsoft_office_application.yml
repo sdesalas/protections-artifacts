@@ -1,0 +1,96 @@
+id: "64021ef9-19d3-4797-ac3c-79e38d5e5a5a_1.0.42"
+type: security-rule
+attributes:
+  description: |
+    Identifies when a Microsoft Office process spawns a descendant process used for initial access or malicious code
+    execution. This behavior is consistent with a user opening an Office document that contains malicious macros.
+  rule_id: "64021ef9-19d3-4797-ac3c-79e38d5e5a5a"
+  license: Elastic License v2
+  name: Initial Access or Execution via Microsoft Office Application
+  os_list:
+    - macos
+  reference:
+    - "https://objective-see.com/blog/blog_0x4B.html"
+  version: "1.0.42"
+  query: "process where event.action == \"exec\" and\n  descendant of [\n    process where event.action == \"exec\" and\n    process.name in (\n      \"Microsoft Word\",\n      \"Microsoft Excel\",\n      \"Microsoft PowerPoint\",\n      \"Microsoft OneNote\"\n    )\n  ] and\n  process.name like~ (\n    \"curl\",\n    \"nscurl\",\n    \"bash\",\n    \"sh\",\n    \"osascript\",\n    \"python*\",\n    \"perl*\",\n    \"mktemp\",\n    \"chmod\",\n    \"php\",\n    \"nohup\",\n    \"openssl\",\n    \"plutil\",\n    \"PlistBuddy\",\n    \"xattr\",\n    \"mktemp\",\n    \"sqlite3\",\n    \"funzip\",\n    \"popen\"\n  ) and\n  // Filter FPs related to product version discovery and Office error reporting behavior\n  not process.args like~\n    (\n      \"ProductVersion\",\n      \"hw.model\",\n      \"ioreg\",\n      \"ProductName\",\n      \"ProductUserVisibleVersion\",\n      \"ProductBuildVersion\",\n      \"/Library/Application Support/Microsoft/MERP*/Microsoft Error Reporting.app/Contents/MacOS/Microsoft Error Reporting\",\n      \"open -a Safari *\",\n      \"defaults read *\",\n      \"sysctl hw.model*\",\n      \"ioreg -d2 -c IOPlatformExpertDevice *\",\n      \"ps aux | grep 'ToDesk_Desktop' | grep -v grep\",\n      \"PIPE=\\\"$CFFIXED_USER_HOME/.zoteroIntegrationPipe*\", \n      \"/Library/Management/super/com.macjutsu.super.plist\",\n      \"\\\"/Applications/Mendeley Desktop.app/Contents/MacOS/MendeleyWordPlugin.app/Contents/MacOS/MendeleyWordPlugin\\\" setPort *\",\n      \"*http://127.0.0.1:23119/integration/macWordCommand?*\",\n      \"*/usr/bin/curl -s -o /dev/null -I -m 2 -w '%{http_code}' -X GET 'http://127.0.0.1:*'\",\n      \"*/Applications/XLSTAT.app/*\"\n    ) and\n   not process.parent.executable like~\n        (\n          \"/Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\",\n          \"/usr/local/Privacy-i/PISupervisor\",\n          \"/Library/Addigy/lan-cache\",\n          \"/Library/Elastic/Agent/*\",\n          \"/opt/jc/bin/jumpcloud-agent\",\n          \"/usr/sbin/networksetup\"\n        ) and\n   not (process.name == \"sh\" and process.command_line like~ \"*$CFFIXED_USER_HOME/.zoteroIntegrationPipe*\") and\n   not (process.name in (\"sh\", \"bash\", \"curl\") and process.command_line like~ \"*http://127.0.0.1:6969/binary*ppShuttle_*.bin*\") and\n   not process.Ext.effective_parent.executable like~ (\n        \"/Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\",\n        \"/Applications/Docker.app/Contents/MacOS/com.docker.backend\",\n        \"/Applications/FortiClient.app/Contents/Resources/runtime.helper/FortiClientAgent.app/Contents/MacOS/FortiClientAgent\",\n        \"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon\",\n        \"/Applications/Microsoft Defender.app/Contents/MacOS/wdavdaemon\",\n        \"/Library/Intune/Microsoft Intune Agent.app/Contents/MacOS/IntuneMdmDaemon\",\n        \"/usr/local/Privacy-i/PISupervisor\",\n        \"/usr/local/jamf/bin/jamf\",\n        \"/Library/Addigy/auditor\",\n        \"/Library/Elastic/Agent/*\",\n        \"/opt/jc/bin/jumpcloud-agent\",\n        \"/usr/sbin/networksetup\",\n        \"/usr/local/action1/action1_agent\",\n        \"/Library/Tanium/TaniumClient/TaniumClient\",\n        \"/Library/PrivilegedHelperTools/com.microsoft.autoupdate.helper\"\n      )\n"
+  min_endpoint_version: "8.5.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+            - id: T1059.006
+              name: Python
+              reference: "https://attack.mitre.org/techniques/T1059/006/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+        - id: T1204
+          name: User Execution
+          reference: "https://attack.mitre.org/techniques/T1204/"
+          subtechnique:
+            - id: T1204.002
+              name: Malicious File
+              reference: "https://attack.mitre.org/techniques/T1204/002/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1027
+          name: Obfuscated Files or Information
+          reference: "https://attack.mitre.org/techniques/T1027/"
+        - id: T1140
+          name: Deobfuscate/Decode Files or Information
+          reference: "https://attack.mitre.org/techniques/T1140/"
+        - id: T1647
+          name: Plist File Modification
+          reference: "https://attack.mitre.org/techniques/T1647/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.5.0"

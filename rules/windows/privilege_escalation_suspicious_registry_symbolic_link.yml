@@ -1,0 +1,40 @@
+id: "0c5c8b29-9903-4a04-9ca8-20abafc9db41_1.0.10"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of registry symbolic link by an unusual process. This may indicate an attempt to elevate
+    privileges via hijacking privileged registry read operations using a malicious registry symbolic link.
+  rule_id: "0c5c8b29-9903-4a04-9ca8-20abafc9db41"
+  license: Elastic License v2
+  name: Suspicious Registry Symbolic Link
+  os_list:
+    - windows
+  version: "1.0.10"
+  query: "registry where event.action == \"modification\" and user.id : (\"S-1-5-21*\", \"S-1-12-*\") and\nregistry.value : \"SymbolicLinkValue\" and process.executable : \"?:\\\\*\" and\n not process.executable :\n            (\"?:\\\\Windows\\\\System32\\\\DriverStore\\\\FileRepository\\\\*\", \n\t     \"?:\\\\Windows\\\\System32\\\\svchost.exe\", \n             \"?:\\\\Program Files\\\\*.exe\", \n\t     \"?:\\\\Program Files (x86)\\\\*.exe\", \n             \"?:\\\\Windows\\\\Temp\\\\asw-*\\\\avg-av\\\\icarus.exe\", \n\t     \"?:\\\\$WINDOWS.~BT\\\\Work\\\\*\\\\DismHost.exe\") and\n not (process.code_signature.trusted == true and not process.code_signature.subject_name : \"Microsoft*\") and\n not (process.name : \"DismHost.exe\" and process.code_signature.trusted == true and process.code_signature.subject_name : \"Microsoft *\") and\n not (process.executable : \"?:\\\\Windows\\\\System32\\\\msiexec.exe\" and registry.path : \"HKEY_USERS\\\\*\\\\Software\\\\Nico Mak Computing\\\\SymbolicLinkValue\")\n"
+  actions: []
+  min_endpoint_version: "8.4.0"
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1112
+          name: Modify Registry
+          reference: "https://attack.mitre.org/techniques/T1112/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

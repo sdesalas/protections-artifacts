@@ -1,0 +1,42 @@
+id: "905f4c30-a8c5-40a5-80e3-a50c5613432f_1.0.49"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to tamper with a DLL associated with a Protected Process Light (PPL) process. The purpose of PPL is
+    to protect critical system processes against modification, access, or tampering via open process functions. An attacker
+    may attempt to tamper with the DLL associated with a PPL process in order to bypass PPL protection and inject malicious
+    code into the protected process, elevating their privileges. This privilege escalation can enable them to evade or
+    disable security software, and access sensitive information such as credentials.
+  rule_id: "905f4c30-a8c5-40a5-80e3-a50c5613432f"
+  license: Elastic License v2
+  name: Protected Process Light Bypass via DLL Tampering
+  os_list:
+    - windows
+  reference:
+    - "https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html"
+    - "https://www.elastic.co/blog/protecting-windows-protected-processes"
+    - "https://www.elastic.co/security-labs/Hunting-for-Suspicious-Windows-Libraries-for-Execution-and-Evasion"
+    - "https://www.elastic.co/blog/process-ghosting-a-new-executable-image-tampering-attack"
+  version: "1.0.49"
+  query: "sequence by process.entity_id\n [process where event.action == \"start\" and process.Ext.protection != null and\n  process.Ext.protection != \"PsProtectedSignerAntimalware-Light\" and\n  not (process.executable : \"?:\\\\Program Files\\\\Windows Defender Advanced Threat Protection\\\\MsSense.exe\" and\n       process.parent.executable : \"?:\\\\Windows\\\\System32\\\\services.exe\")]\n [library where dll.Ext.defense_evasions : \"Process Tampering: Code integrity violation\" and\n  not (dll.code_signature.trusted == true and\n       dll.code_signature.subject_name :\n                 (\"ESET, spol. s r.o.\",\n                  \"Acronis International GmbH\",\n                  \"Kaseya Corporation\",\n                  \"Veeam Software Group GmbH\",\n                  \"Trend Micro, Inc.\",\n                  \"Sophos Ltd\",\n                  \"Sophos Limited\",\n                  \"DeviceLock, Inc\",\n                  \"Cynet Security LTD\")) and\n  not process.executable : \"?:\\\\Program Files (x86)\\\\Common Files\\\\BattlEye\\\\BEService.exe\" and\n  /* potential services child processes */\n  not (process.executable : \"?:\\\\Windows\\\\System32\\\\services.exe\" and dll.name : \"*.exe\") and\n  not (dll.path :\n           (\"?:\\\\Windows\\\\WinSxS\\\\Temp\\\\PendingDeletes\\\\$$DeleteMe*\",\n            \"?:\\\\Windows\\\\WinSxS\\\\amd64_microsoft-windows-hotpatches_*_hotpatch.dll\",\n            \"?:\\\\Windows\\\\SMSS-*.tmp\",\n            \"?:\\\\Windows\\\\System32\\\\win32k.sys\",\n            \"?:\\\\ProgramData\\\\Microsoft\\\\Windows Defender Advanced Threat Protection\\\\Platform\\\\*.exe\") and\n       dll.code_signature.subject_name : (\"Microsoft Windows\", \"Microsoft Windows Publisher\") and\n       dll.code_signature.trusted == true) and\n   not dll.path : \"C:\\\\ProgramData\\\\SecureWorks\\\\TaegisAgent\\\\{*}\\\\TaegisInj.x64.dll\" and\n   not dll.hash.sha256 :\n              (\"6f8761d35b531dde2e8fd60bdcfd16cee46d48b84a2e0c28fecd1b66675faf48\",\n               \"545a3aec876c49c56693f48f5fde740487330ca097775d9a434157aabf25db10\",\n               \"ab813df167f8b6afe13f67231328f28fa3b0efeed8460f8b5e8a4228a8cded4e\", \n               \"ce0f4cd9d9af178aead83df4f46146f1c66cc2c3e600c8aafa0a392fc5ad9637\", \n               \"00af34a5cca727b768d6030ca15e0f728e5855c23c73c78712aaee69fa14b489\", \n               \"cd5bd7618b6b70f5463b1279e692ec694978c7419c3360ad07fe69e8c9a48e7c\", \n               \"5a53be7287634f941e18ea3496ada9b336294311cd50bb4c02ec8d51cbdf4555\", \n               \"ce0f4cd9d9af178aead83df4f46146f1c66cc2c3e600c8aafa0a392fc5ad9637\", \n               \"cec41d7f35cf59669bad11ac70783856b2566425b9f59e3c459ef08f735bb405\", \n               \"94113324af3244b7a90b12837ad305769d91bde430f02d71c0a3f4df8670d87c\", \n               \"8ffcfebcd71d0ef03772e80e381abf72a482c6f091e29700ab59100fe9f82304\",\n               \"6957be7503737453c3feab129d4924fca55e7b0c026ec878d0d040765002732c\",\n               \"5a53be7287634f941e18ea3496ada9b336294311cd50bb4c02ec8d51cbdf4555\",\n               \"5d59d9f32b8f1c4e5161714f1f07bd366f6c71c0ef72a7b7e66e4ac58f646ecd\",\n               \"a5d83fffaac68fb3e924cba92d2f9f18c6377b4af21da00f32d5573aaab64d18\",\n               \"600b4ddc2fae87aaa400992c8ea4998908651900345d0b18d9b7d1ce916e02a4\",\n               \"42db05ee12cb94a0bc3676831f915bfbd71927a5bd2561a051c275038ba3f0ad\",\n               \"40eb09efd0fd767c665cd23360ece6a106e25d5bb692dcd16c63fe8ff1d29079\",\n               \"bc0715826ce01c4782065a28eaef6547dc60cd60b6069ef76e5a26635e510256\",\n               \"399ae476e53ad179f6238c0b7c8235d830490b0dbab981ac77ee73c4b35cf095\",\n               \"14da1fbca85ff2b8ac19ab63f4b7019614865ce8d87bce68100c97174b786ff5\",\n               \"8d6fff5727cded57898398f1d620375e26bab07e8875a4fe840178a2fc5207b5\",\n               \"128ae380509edbf0b17bb8a01110df57e310ec11dba9e9c6e5708098d6603247\",\n               \"3153fd9425111477a2dd15921eb13b2fc98210b5e59ce93238e4cec10ebd30a9\",\n               \"b177344a37bac9f492fcd8718655f634dc74ddc909c66dffd2b05f7bffb9da0f\",\n               \"0c8809a707a34414a2169138bb8749e22fc5437d533c538cff9480a13b768ec5\",\n               \"0f5521daedebfbb0b2f000510a36f9b01364d6dfbd2c983fe9ba7ff52d5bf0a9\",\n               \"8f033c102beb8ce272fa0d9c41fe1d80e650c32dfd04e0508d738756ad97d3d0\",\n               \"f38aea6d696424dd2c59b5293f1dc4ee21f074482e4ee25bd73148c5573a9b4b\",\n               \"e87fde91e0250e88127b38cb70d927c38726403e082b53bb62051c6c82c4fe62\",\n               \"ece86e8a88de3a06ebda73d8945dda04df9a94a0c8f949c9c3e1c3d2355ca526\",\n               /* DeviceLock BackupClient - DLDrvUserMode64.dll (unsigned) */\n               \"671126f4ac6fa36a9f0101d8fd798595dff0357132e29da6448333678acc34a6\",\n               /* SecureWorks TaegisInj.x64.dll (new hash) */\n               \"390b87da25c2b894adab6b8de4756ae5c5c8c3438d00681b138c2bcf812807f2\",\n               /* tumldr.dll - LLP Gamma Technologies */\n               \"46f3db2d2f869c9c4273176ca9b14249b0cd7c15c6dbcfc6e09dc5498030ffa9\",\n               /* SophosAmsiProvider.dll */\n               \"a0ccfd904b6d082c77a879ba76e504c6001887ceea215962a2e8a4075a7ff444\",\n               /* UniAccessLite.MozartBreathManifest2.dll - LeagSoft */\n               \"b676ccc54357b5f7689c7420de1633962b128ac29f4b9ac2e7186aef81b517cd\",\n               /* mfc100.dll - Microsoft Corporation */\n               \"ef2e0df287af95855b6b13173259df847a2cb8a1872ba3d4573e82abd4fb9699\")\n  ]\n  until [process where event.action == \"end\"]\n"
+  min_endpoint_version: "8.0.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1211
+          name: Exploitation for Defense Evasion
+          reference: "https://attack.mitre.org/techniques/T1211/"
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.0.0"

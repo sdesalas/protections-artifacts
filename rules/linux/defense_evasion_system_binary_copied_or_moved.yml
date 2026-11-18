@@ -1,0 +1,41 @@
+id: "4daceba6-54be-4dfc-95ab-a4a9c19c77af_1.0.17"
+type: security-rule
+attributes:
+  description: |
+    This rule detects the copying or moving of system binaries using common shell commands. Attackers may copy or move
+    system binaries to different locations or rename them to evade detection or maintain persistence.
+  rule_id: "4daceba6-54be-4dfc-95ab-a4a9c19c77af"
+  license: Elastic License v2
+  name: System Binary Copied or Moved
+  os_list:
+    - linux
+  version: "1.0.17"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.name in (\"cp\", \"mv\") and \nprocess.args in (\n    \"/bin/sh\", \"/usr/bin/sh\", \"/usr/local/bin/sh\",\n    \"/bin/bash\", \"/usr/bin/bash\", \"/usr/local/bin/bash\",\n    \"/bin/dash\", \"/usr/bin/dash\", \"/usr/local/bin/dash\",\n    \"/bin/zsh\", \"/usr/bin/zsh\", \"/usr/local/bin/zsh\",\n    \"/bin/ksh\", \"/usr/bin/ksh\", \"/usr/local/bin/ksh\",\n    \"/bin/nc\", \"/usr/bin/nc\", \"/usr/local/bin/nc\",\n    \"/bin/netcat\", \"/usr/bin/netcat\", \"/usr/local/bin/netcat\",\n    \"/bin/ncat\", \"/usr/bin/ncat\", \"/usr/local/bin/ncat\",\n    \"/bin/nc.traditional\", \"/usr/bin/nc.traditional\", \"/usr/local/bin/nc.traditional\",\n    \"/bin/nc.openbsd\", \"/usr/bin/nc.openbsd\", \"/usr/local/bin/nc.openbsd\",\n    \"/bin/netcat.openbsd\", \"/usr/bin/netcat.openbsd\", \"/usr/local/bin/netcat.openbsd\",\n    \"/bin/netcat.traditional\", \"/usr/bin/netcat.traditional\", \"/usr/local/bin/netcat.traditional\",\n    \"/bin/socat\", \"/usr/bin/socat\", \"/usr/local/bin/socat\",\n    \"/bin/nmap\", \"/usr/bin/nmap\", \"/usr/local/bin/nmap\",\n    \"/bin/telnet\", \"/usr/bin/telnet\", \"/usr/local/bin/telnet\",\n    \"/bin/curl\", \"/usr/bin/curl\", \"/usr/local/bin/curl\",\n    \"/bin/wget\", \"/usr/bin/wget\", \"/usr/local/bin/wget\",\n    \"/bin/python\", \"/usr/bin/python\", \"/usr/local/bin/python\",\n    \"/bin/python3\", \"/usr/bin/python3\", \"/usr/local/bin/python3\",\n    \"/bin/perl\", \"/usr/bin/perl\", \"/usr/local/bin/perl\",\n    \"/bin/ruby\", \"/usr/bin/ruby\", \"/usr/local/bin/ruby\",\n    \"/bin/php\", \"/usr/bin/php\", \"/usr/local/bin/php\",\n    \"/bin/awk\", \"/usr/bin/awk\", \"/usr/local/bin/awk\",\n    \"/bin/busybox\", \"/usr/bin/busybox\", \"/usr/local/bin/busybox\",\n    \"/bin/find\", \"/usr/bin/find\", \"/usr/local/bin/find\",\n    \"/bin/xargs\", \"/usr/bin/xargs\", \"/usr/local/bin/xargs\",\n    \"/bin/env\", \"/usr/bin/env\", \"/usr/local/bin/env\",\n    \"/bin/cut\", \"/usr/bin/cut\", \"/usr/local/bin/cut\",\n    \"/bin/tee\", \"/usr/bin/tee\", \"/usr/local/bin/tee\",\n    \"/bin/ssh\", \"/usr/bin/ssh\", \"/usr/local/bin/ssh\",\n    \"/bin/sshd\", \"/usr/bin/sshd\", \"/usr/local/bin/sshd\",\n    \"/bin/scp\", \"/usr/bin/scp\", \"/usr/local/bin/scp\",\n    \"/bin/ftp\", \"/usr/bin/ftp\", \"/usr/local/bin/ftp\",\n    \"/bin/tftp\", \"/usr/bin/tftp\", \"/usr/local/bin/tftp\",\n    \"/bin/kubectl\", \"/usr/bin/kubectl\", \"/usr/local/bin/kubectl\",\n    \"/bin/crictl\", \"/usr/bin/crictl\", \"/usr/local/bin/crictl\",\n    \"/bin/dockerd\", \"/usr/bin/dockerd\", \"/usr/local/bin/dockerd\",\n    \"/bin/docker\", \"/usr/bin/docker\", \"/usr/local/bin/docker\",\n    \"/bin/containerd\", \"/usr/bin/containerd\", \"/usr/local/bin/containerd\"\n  ) and process.args_count >= 3 and not (\n  process.parent.executable like (\n    \"/usr/lib/dracut/dracut-install\", \"/usr/bin/make\", \"/bin/make\", \"/usr/share/initramfs-tools/hooks/*\", \"/var/lib/dpkg/info/*\",\n    \"/usr/local/bin/sigostclsh8.6\", \"/usr/lib/usrmerge/convert-usrmerge\", \"/usr/sbin/rear\", \"/usr/bin/byobu-status\", \"/sbin/rear\",\n    \"/usr/bin/find\", \"/tmp/newroot/nix/store/*/activate\", \"/nix/store/*/activate\", \"/var/lib/containers/storage/overlay/nix/store/*/activate\",\n    \"/var/lib/dpkg/tmp.ci/preinst\", \"/usr/sbin/nv-update-initrd\", \"/sbin/dracut\", \"/opt/SIGOS/*\", \"/tmp/newroot/usr/lib/dracut/dracut-install\",\n    \"/usr/libexec/flatpak-session-helper\", \"/usr/sbin/mkinitramfs\", \"/var/tmp/portage/*/libtool\", \"/tmp/newroot/usr/bin/make\"\n  ) or\n  process.working_directory like (\n    \"/etc/localtime/var/lib/rancher\", \"/run/k3s/containerd/*\", \"/var/lib/docker/*\", \"/var/lib/rancher\", \"/var/tmp/portage/*\"\n  ) or\n  process.args like (\"/var/tmp/dracut.*/initramfs/*\", \"/var/tmp/mkinitramfs_*\", \"/opt/jail/driver-jail/*\") or\n  process.parent.args like (\n    \"/var/tmp/rpm-tmp*\", \"/usr/sbin/rear\", \"/usr/lib/usrmerge/convert-usrmerge\", \"/usr/share/initramfs-tools/hooks/zz-busybox\",\n    \"./libtool\", \"/var/lib/dpkg/info/dash.postinst\", \"*./libtool*\", \"/usr/bin/mkinitcpio\", \"/sbin/rear\"\n  ) or\n  process.command_line in (\n    \"mv kubectl /usr/bin/kubectl\", \"mv ./kubectl /usr/bin/kubectl\", \"cp kubectl /usr/local/bin/kubectl\",\n    \"mv kubectl /usr/local/bin/kubectl\", \"mv ./kubectl /usr/local/bin/kubectl\",\n    \"/usr/bin/coreutils --coreutils-prog-shebang=cp /usr/bin/cp /usr/bin/sh /tmp\"\n  ) or\n  (process.parent.command_line like \"/nix/store/*\" and process.command_line == \"mv /bin/.sh.tmp /bin/sh\") or\n  (process.parent.name == \"shtool\" and process.command_line == \"mv /usr/local/bin/#INST@*# /usr/local/bin/php\") or\n  (\n    process.args like \"./curl.leap*.x86_64\" and\n    process.working_directory like \"/opt/SIGOS/sitedata/exec/*\"\n  ) or\n  process.parent.command_line == \"/usr/bin/runc init\" or\n  process.group_leader.executable == \"/usr/bin/make\" or\n  (process.parent.args ==\"/var/lib/dpkg/tmp.ci/preinst\" and process.parent.args == \"install\")\n)\n"
+  min_endpoint_version: "8.6.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.003
+              name: Rename Legitimate Utilities
+              reference: "https://attack.mitre.org/techniques/T1036/003/"
+        - id: T1564
+          name: Hide Artifacts
+          reference: "https://attack.mitre.org/techniques/T1564/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.6.0"

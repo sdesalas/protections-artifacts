@@ -1,0 +1,35 @@
+id: df9cc41e-4686-4aa0-8f79-60055dd01812_1.0.28
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of a process from a downloaded ISO file. Attacker may abuse ISO files to deliver malicious
+    programs.
+  rule_id: df9cc41e-4686-4aa0-8f79-60055dd01812
+  license: Elastic License v2
+  name: Execution from a Downloaded ISO File
+  os_list:
+    - windows
+  version: "1.0.28"
+  query: "sequence with maxspan=5m\n [file where event.action != \"deletion\" and file.extension : (\"ISO\", \"IMG\") and\n  (\n    file.path : (\"?:\\\\Users\\\\*\\\\Downloads\\\\*\",\n                 \"?:\\\\Users\\\\*\\\\Content.Outlook\\\\*\",\n                 \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\Temp?_*\") or\n    file.name : \"*:Zone.Identifier\" or\n    file.Ext.windows.zone_identifier > 1\n   ) and\n   not process.executable : \"?:\\\\Windows\\\\System32\\\\dllhost.exe\"\n  ]\n [process where event.action == \"start\" and\n  process.parent.name : (\"explorer.exe\", \"cmd.exe\", \"powershell.exe\") and \n  process.working_directory : \"?:\\\\\" and \n\n  /* execution from mounted ISO file */\n  (process.executable : \"\\\\Device\\\\CdRom*\" or (process.executable : \"?:\\\\*\" and not process.executable : \"?:\\\\*\\\\*\")) and\n\n  not (process.pe.original_file_name : (\"setup.exe\", \"SqlSetupBootstrapper.exe\") and process.code_signature.trusted == true)\n  ]\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+  internal:
+    min_endpoint_version: "7.15.0"

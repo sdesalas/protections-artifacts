@@ -1,0 +1,39 @@
+id: "15c48f2d-e461-40a9-accd-090a0863ea10_1.0.14"
+type: security-rule
+attributes:
+  description: |
+    Identifies when a process is writing to commonly abused persistence locations (registry run keys and startup folder)
+    from a thread running from a memory section with read, write and execute permissions. This may indicate an attempt to
+    persist from a packed or injected program.
+  rule_id: "15c48f2d-e461-40a9-accd-090a0863ea10"
+  license: Elastic License v2
+  name: Startup Persistence from Backed RWX Memory
+  os_list:
+    - windows
+  version: "1.0.14"
+  query: "any where event.category in (\"registry\", \"file\") and process.executable != null and\n not event.action in (\"deletion\", \"query\") and process.thread.Ext.call_stack_summary like \"?*\" and\n not process.code_signature.status like (\"trusted\", \"errorExpired\", \"errorCode_endpoint*\") and\n not process.thread.Ext.call_stack_summary like (\"*Unbacked*\", \"*clr.dll*\", \"*Unknown*\", \"*|kernelbase.dll|irsetup.exe*\", \n                                              \"*issetup.dll|isrt.dll*\", \"*adobepim.dll|set-up.dat*\") and\n _arraysearch(process.thread.Ext.call_stack, $entry, $entry.protection : \"RWX\") and\n   (\n    (registry.data.strings != null and\n     registry.path :\n        (\"H*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\", \n\t \"H*\\\\Software\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\", \n         \"H*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\", \n\t \"H*\\\\Software\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\")) or\n    (file.name != null and file.path : \"?:\\\\*\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\Startup\\\\*\")\n   ) and\n   not (process.executable : \"?:\\\\Windows\\\\Sys*\\\\msiexec.exe\" and\n       _arraysearch(process.thread.Ext.call_stack, $entry,\n\t                $entry.protection : \"RWX\" and $entry.symbol_info : (\"?:\\\\Windows\\\\Temp\\\\*\", \"?:\\\\Windows\\\\Installer\\\\*\"))) and \n   not _arraysearch(process.thread.Ext.call_stack, $entry,\n\t                $entry.protection : \"RWX\" and\n\t                $entry.symbol_info : (\"?:\\\\Windows\\\\Installer\\\\*\",\n\t                                      \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\*\\\\isrt.dll!_RegSetKeyValue+*\",\n\t                                      \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\{*}\\\\ISSetup.dll!InstallEngineTypelib*\",\n\t                                      \"?:\\\\Program Files (x86)\\\\Gizmo\\\\gdrive.dll!Remount_Startup_Images*\")) and\n   not registry.data.strings : (\"?:\\\\windows\\\\Twain_32\\\\fjscan32\\\\FjtwMkup.exe /Station\", \"\\\"C:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\Webex\\\\Webex.lnk\\\" /minimized /autostartedWithWindows=true\") and\n   not (process.executable :  \"?:\\\\Windows\\\\SysWOW64\\\\DWRCS.EXE\" and registry.data.strings : \"?:\\\\WINDOWS\\\\SysWOW64\\\\DWRCST.exe\") and\n   not process.executable : (\"?:\\\\Program Files (x86)\\\\*.exe\", \"?:\\\\Program Files\\\\*.exe\")\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.001
+              name: Registry Run Keys / Startup Folder
+              reference: "https://attack.mitre.org/techniques/T1547/001/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "8.7.0"

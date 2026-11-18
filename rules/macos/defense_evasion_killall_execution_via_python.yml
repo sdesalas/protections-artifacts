@@ -1,0 +1,34 @@
+id: "3e176b0d-3dfd-44ae-8b75-9569463edde5_1.0.3"
+type: security-rule
+attributes:
+  description: Detects when Python executes the Killall binary in order to kill a process.
+  rule_id: "3e176b0d-3dfd-44ae-8b75-9569463edde5"
+  license: Elastic License v2
+  name: Killall Execution via Python
+  os_list:
+    - macos
+  version: "1.0.3"
+  query: |
+    process where event.type == "start" and event.action == "exec" and process.parent.name like~ "python*" and process.name == "killall"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.2"

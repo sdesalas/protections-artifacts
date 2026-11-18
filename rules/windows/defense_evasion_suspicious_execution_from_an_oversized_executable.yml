@@ -1,0 +1,41 @@
+id: "7a804cf1-aec7-474d-a776-7e78f6b14658_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of commonly abused Microsoft binaries from an oversized parent executable. Malwares tend to
+    increase the size of the binary payload beyond what some security tools are capable of handling due to file size
+    limitations.
+  rule_id: "7a804cf1-aec7-474d-a776-7e78f6b14658"
+  license: Elastic License v2
+  name: Suspicious Execution from an Oversized Executable
+  os_list:
+    - windows
+  reference:
+    - "https://attack.mitre.org/techniques/T1027/001/"
+  version: "1.0.8"
+  query: "sequence with maxspan=5m\n[file where event.action != \"deletion\" and\n  (file.extension : (\"exe\", \"com\", \"pif\", \"scr\", \"dll\", \"cpl\", \"ocx\") or file.Ext.header_bytes : \"4d5a*\") and\n\n   /* larger than 10MB */\n   file.size >= 100000000 and\n\n  (\n   /* common initial access and execution processes */\n   process.name : (\"winword.exe\", \"excel.exe\", \"powerpnt.exe\", \"cmd.exe\", \"powershell.exe\", \"cscript.exe\", \"wscript.exe\",\n                   \"mshta.exe\", \"rundll32.exe\", \"regsvr32.exe\", \"certutil.exe\", \"CertReq.exe\", \"curl.exe\", \"msbuild.exe\",\n                   \"installutil.exe\", \"regasm.exe\", \"expand.exe\", \"xcopy.exe\", \"chrome.exe\", \"brave.exe\", \"firefox.exe\",\n                   \"msedge.exe\", \"whale.exe\", \"browser.exe\", \"dragon.exe\", \"vivaldi.exe\", \"opera.exe\") or\n\n    /* suspicious or user writable paths and unsigned processes */\n   (process.executable : (\"?:\\\\Users\\\\*\", \"?:\\\\ProgramData\\\\*\", \"?:\\\\Windows\\\\Temp\\\\*\", \"?:\\\\Windows\\\\Tasks\\\\*\", \"\\\\Device\\\\Mup\\\\*\") and\n    (process.code_signature.trusted == false or process.code_signature.exists == false))\n   ) and\n\n   /* excluding noisy patterns */\n   not file.path : (\"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\") and not user.id : (\"S-1-5-18\", \"S-1-5-19\", \"S-1-5-20\") and\n   not process.executable :\n              (\"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\electron-builder\\\\Cache\\\\winCodeSign\\\\winCodeSign-2.6.0\\\\rcedit-x64.exe\",\n               \"?:\\\\Users\\\\*\\\\Electron\\\\dist\\\\StrigoTool-Electron Setup 1.0.0.exe\")\n ] by file.path\n[process where event.action == \"start\" and \n process.name : (\"cmd.exe\", \"powershell.exe\", \"wscript.exe\", \"mshta.exe\", \"rundll32.exe\", \"regsvr32.exe\",\n                 \"certutil.exe\", \"CertReq.exe\", \"curl.exe\", \"msbuild.exe\") and\n not (process.name : \"wscript.exe\" and process.args : \"C:\\\\Prntdrvr\\\\SFX\\\\silent.vbs\") and\n not (process.name : \"cmd.exe\" and\n      process.args : (\"C:\\\\WINDOWS\\\\system32\\\\reg.exe ADD HKCU\\\\Software\\\\Classes\\\\GoSignDesktop.p7m /f\",\n                      \"USERNAME eq %USERNAME%\", \"lms version --json\", \"--output-encoding=bser\",\n                      \"imagename eq SteelSeriesGG.exe\")) and\n not (process.parent.code_signature.subject_name : (\"KOBIL GmbH\", \"Shenzhen Tuozhu Technology Co., Ltd.\", \"Bose Professional\") and\n      process.parent.code_signature.trusted == true) and\n not process.parent.code_signature.trusted == true and not process.parent.args == \"--squirrel-firstrun\" and\n not process.command_line :\n               (\"C:\\\\Windows\\\\system32\\\\cmd.exe /d /s /c \\\"node -v\\\"\",\n                \"C:\\\\Windows\\\\system32\\\\cmd.exe /d /s /c \\\"chcp\\\"\",\n                \"C:\\\\windows\\\\system32\\\\cmd.exe /c az version -o=json\",\n                \"C:\\\\WINDOWS\\\\system32\\\\cmd.exe /d /s /c \\\"wmic CsProduct Get UUID\\\"\",\n                \"C:\\\\windows\\\\system32\\\\cmd.exe /d /s /c \\\"wsl.exe -l -q\\\"\",\n                \"C:\\\\WINDOWS\\\\system32\\\\cmd.exe /d /s /c *\",\n                \"cmd /c dir\") and\n not (process.name : \"cmd.exe\" and process.args : (\"*.bat\", \"*.cmd\", \"rmdir\", \"*.bat \", \"*.cmd \")) and\n not (process.name : \"cmd.exe\" and process.args : (\"*reg.exe QUERY*\", \"netstat -r\", \"net session\", \"wsl.exe -l -q\",\n                                                   \"C:\\\\Program Files (x86)\\\\Annke Vision Site\\\\Nginx\",\n                                                   \"route print 0.0.0.0 mask 0.0.0.0\",\n                                                   \"powershell -command Get-Culture\",\n                                                   \"powershell -Command Get-Host\")) and\n not (process.name : \"powershell.exe\" and\n      process.command_line : \"C:\\\\Windows\\\\system32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe -NoProfile -NoLogo -InputFormat Text -NoExit -ExecutionPolicy Unrestricted -Command -\")\n ] by process.parent.executable\n"
+  min_endpoint_version: "8.14.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1027
+          name: Obfuscated Files or Information
+          reference: "https://attack.mitre.org/techniques/T1027/"
+          subtechnique:
+            - id: T1027.001
+              name: Binary Padding
+              reference: "https://attack.mitre.org/techniques/T1027/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.14.0"

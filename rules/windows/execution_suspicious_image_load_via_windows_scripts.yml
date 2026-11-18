@@ -1,0 +1,40 @@
+id: "23e29d07-7584-465e-8a6d-912d9ea254a6_1.0.24"
+type: security-rule
+attributes:
+  description: |
+    Identifies when a Windows script interpreter loads an unsigned or untrusted external library. This may indicate an
+    attempt to evade detection by executing malicious code via uncommon methods.
+  rule_id: "23e29d07-7584-465e-8a6d-912d9ea254a6"
+  license: Elastic License v2
+  name: Suspicious Image Load via Windows Scripts
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/Hunting-for-Suspicious-Windows-Libraries-for-Execution-and-Evasion"
+  version: "1.0.24"
+  query: "library where process.name : (\"wscript.exe\", \"cscript.exe\", \"mshta.exe\", \"wmic.exe\", \"cmstp.exe\", \"msxsl.exe\") and\n\n dll.Ext.relative_file_creation_time <= 500 and\n\n (dll.code_signature.trusted == false or dll.code_signature.exists == false) and \n \n not dll.code_signature.status : (\"errorChaining\", \"errorExpired\") and \n \n not dll.path :\n       (\"?:\\\\Windows\\\\assembly\\\\NativeImages*\", \n        \"?:\\\\Windows\\\\System32\\\\*\",\n        \"?:\\\\Windows\\\\SysWOW64\\\\*\",\n        \"?:\\\\Program Files\\\\*\",\n        \"?:\\\\Program Files (x86)\\\\*\",\n        \"?:\\\\Windows\\\\WinSxS\\\\*\") and\n not startswith~(process.name, dll.name)\n"
+  min_endpoint_version: "8.4.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.005
+              name: Visual Basic
+              reference: "https://attack.mitre.org/techniques/T1059/005/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.4.0"

@@ -1,0 +1,80 @@
+id: e8b2afe5-37a9-468c-a6fb-f178d46cb698_1.0.29
+type: security-rule
+attributes:
+  description: |
+    This rule detects hidden executables being executed through cron and systemd. Cron and Systemd can be used to schedule
+    jobs (commands or scripts) to run periodically at fixed times, dates, or intervals. Threat actors may abuse these
+    built-in services to execute malicious commands or scripts at specific times or intervals to establish persistence or
+    escalate privileges.
+  rule_id: e8b2afe5-37a9-468c-a6fb-f178d46cb698
+  license: Elastic License v2
+  name: Hidden Payload Executed via Scheduled Job
+  os_list:
+    - linux
+  reference:
+    - "https://intezer.com/blog/research/kaiji-new-chinese-linux-malware-turning-to-golang/"
+    - "https://www.elastic.co/security-labs/primer-on-persistence-mechanisms"
+  version: "1.0.29"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and (\n  (process.parent.name in (\"cron\", \"crond\") and process.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\") and\n   process.args == \"-c\" and process.args like \"*/.*\" and not process.args like (\"*/.*/*\", \"*/.*;*\")) or\n  (process.parent.name == \"systemd\" and process.args like \"*/.*\" and process.args_count == 1)\n) and not (\n  process.command_line in (\n    \"/bin/sh -c /bin/bash /root/rotate.sh rotate /root/.vault-token\",\n    \"/bin/sh -c crontab -l > $HOME/.crontab\",\n    \"/bin/sh -c autorestic -c /root/.autorestic.yml --ci cron\",\n    \"/bin/sh -c /root/.dbbackup.sh\",\n    \"/bin/sh -c bash /root/.stafftimerDatabase.sh\",\n    \"/bin/sh -c bash /root/.db-backup.sh\",\n    \"/bin/bash -c chown root /tmp/.flexlm*\",\n    \"/bin/sh -c crontab -l > $HOME/.crontab.bak\",\n    \"/bin/sh -c /bin/...\",\n    \"/bin/sh -c crontab -l > ~keystone/.crontab.$MAILTAG.keystone\",\n    \"/bin/sh -c /usr/local/bin/autorestic -c /root/.autorestic.yml --ci cron\",\n    \"/bin/sh -c /root/bin/getssl -a -q -w /root/.getssl-acme.sectigo.com\",\n    \"/bin/sh -c /webmail/tools/alluser.pl > /webmail/modules/ad_sync/etc/.always_keep.list\",\n    \"/bin/sh -c bash /root/.pf-new-vpn-ssl-check.sh\",\n    \"/bin/sh -c /bin/bash $HOME/.backup.sh\",\n    \"/bin/sh -c /bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/| /bin/mysql --defaults-file=/root/.my.cnf mysql\",\n    \"/bin/sh -c /bin/echo -n >/data/EXPORT/.approved\",\n    \"/bin/sh -c source ~/.bashrc\",\n    \"/bin/sh -c /usr/local/bin/getssl -a -q -w /home/acme/.getssl\", \"/bin/sh -c mysqlcheck --defaults-file=/root/.my.cnf -o misp\",\n    \"/bin/sh -c /usr/local/bin/getssl -a -q -w /home/acme/.getssl-lets-encrypt\"\n  ) or\n  process.command_line like (\n    \"*/home/*/.*.*\", \"*/opt/invgate/insight-agent/*\", \"*ansible*\", \"/bin/sh -c /backup/store_Weight_LABEL/.create_site.sh*\",\n    \"/bin/sh -c /backup/mktphotos/.main*.sh\", \"/bin/bash -c unset*/var/.cagefs'\", \"/bin/sh -c *autorestic*\", \"*/opt/export-ecs-ip/ecs-ip.py*\", \n    \"/bin/sh -c /usr/local/bin/mettle cache -d /var/cache/mettle *\", \n    \"/bin/sh -c /opt/tm/mettle/root/mettle cache -d /opt/tm/mettle/root/var/cache/mettle*\",\n    \"/bin/sh -c gssh-agent scp -r *:/mnt/*/common/shared/*/skills_repo/skills ~/.agents\"\n  ) or\n  process.args like (\n    \"/usr/sbin/tmpwatch*\", \"/usr/sap/*\", \"sed*\", \"*/../*\", \"cd ~/.unison*\", \"/usr/sbin/logrotate*\",\n    \"/home/*/.local/share/JetBrains/Toolbox/apps/intellij-idea-community-edition/bin/idea\",\n    \"/usr/bin/flock*\", \"export VAULT_ADDR=* VAULT_SKIP_VERIFY=true && /usr/local/bin/vault token renew >> ~/.vault-renewal.log 2>&1\"\n  ) or\n  process.executable like (\n    \"/opt/eset/eei/bin/*\", \"/tmp/newroot/tmp/.mount_*\", \"/tmp/.mount_*\", \"/opt/gotify/gotify-linux-amd64\",\n    \"/home/*/.local/share/JetBrains/Toolbox/apps/goland/bin/goland\", \"/home/*/.linuxbrew/opt/etcd/bin/etcd\",\n    \"/tmp/newroot/home/*/.local/share/JetBrains/*\", \"/home/*/.local/share/caa/caa\",\n    \"/home/*/.local/bin/gitsign-credential-cache\",\n    \"/home/*/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/bin/idea\",\n    \"/home/*/.local/share/JetBrains/*\", \"/home/*/.local/opt/activitywatch/*\",\n    \"/home/*/.local/bin/claude-oauth-proxy\", \"/root/.local/openaev-agent-session/openaev-agent\",\n    \"/nix/store/*/bin/.blueman-tray-wrapped\", \"/var/lib/containers/storage/overlay/nix/store/*/bin/.blueman-tray-wrapped\",\n    \"/home/*/.config/discord/*/Discord\", \"/root/.local/share/netservice/bin/netservice\", \"/opt/apps/verodin/node/node/scripts/.verodin_pull_service/verodin_pull_service\",\n    \"/opt/apps/verodin/node/node/scripts/.verodin_network_monitor/verodin_network_monitor\", \"/opt/apps/verodin/node/node/web/.verodin_standalone_server/verodin_standalone_server\"\n  ) or\n  process.name in (\"riptide-agent\", \"zellij\", \"gitsign-credential-cache\", \"jetbrains-toolbox\", \"goland\") or\n  process.working_directory == \"/var/lib/rabbitmq\" or\n  (process.working_directory == \"/home/oracle\" and process.command_line like \"/bin/sh -c sh /u01/oradata/*\")\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+          subtechnique:
+            - id: T1053.003
+              name: Cron
+              reference: "https://attack.mitre.org/techniques/T1053/003/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+          subtechnique:
+            - id: T1053.003
+              name: Cron
+              reference: "https://attack.mitre.org/techniques/T1053/003/"
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.002
+              name: Systemd Service
+              reference: "https://attack.mitre.org/techniques/T1543/002/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+          subtechnique:
+            - id: T1053.003
+              name: Cron
+              reference: "https://attack.mitre.org/techniques/T1053/003/"
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.002
+              name: Systemd Service
+              reference: "https://attack.mitre.org/techniques/T1543/002/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "7.15.0"

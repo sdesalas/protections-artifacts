@@ -1,0 +1,57 @@
+id: a67ef648-f04e-475c-8f53-a2db038ee834_1.0.7
+type: security-rule
+attributes:
+  description: |
+    This rule detects suspicious file uploads to web servers. Attackers may exploit RCE or file upload vulnerabilities to
+    upload malicious files to web servers to gain/maintain access and to establish a command and control channel.
+  rule_id: a67ef648-f04e-475c-8f53-a2db038ee834
+  license: Elastic License v2
+  name: Suspicious File Creation via Web Server
+  os_list:
+    - linux
+  version: "1.0.7"
+  query: "sequence by process.entity_id with maxspan=3s\n  [network where event.type == \"start\" and event.action == \"connection_accepted\" and not (\n     source.ip == null or source.ip == \"0.0.0.0\" or cidrmatch(\n       source.ip, \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \"192.0.0.0/24\", \"192.0.0.0/29\",\n       \"192.0.0.8/32\", \"192.0.0.9/32\", \"192.0.0.10/32\", \"192.0.0.170/32\", \"192.0.0.171/32\", \"192.0.2.0/24\",\n       \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.168.0.0/16\", \"192.88.99.0/24\", \"224.0.0.0/4\", \"100.64.0.0/10\",\n       \"192.175.48.0/24\",\"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\", \"240.0.0.0/4\", \"::1\", \"FE80::/10\",\n       \"FF00::/8\"\n     )\n   )\n  ]\n  [file where event.type == \"change\" and event.action in (\"rename\", \"creation\") and \n   file.extension in (\"py\", \"pl\", \"rb\", \"elf\", \"so\", \"rs\", \"lua\", \"jpeg\", \"md\", \"sh\", \"jsp\") and (\n     user.name in (\n      \"apache\", \"www-data\", \"httpd\", \"nginx\", \"lighttpd\", \"tomcat\", \"tomcat8\", \"tomcat9\", \"ftp\", \"ftpuser\", \"ftpd\"\n     ) or\n     user.id in (99, 33, 498, 48)\n   ) and (\n     file.path : (\"/var/www/*\", \"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/root/*\", \"/home/*\") and\n     process.name : (\n       \"apache\", \"nginx\", \"apache2\", \"httpd\", \"lighttpd\", \"caddy\", \"php-*\", \"node\", \"mongrel_rails\", \"gunicorn\",\n       \"uwsgi\", \"openresty\", \"cherokee\", \"h2o\", \"resin\", \"puma\", \"unicorn\", \"traefik\", \"tornado\", \"hypercorn\",\n       \"daphne\", \"twistd\", \"yaws\", \"webfsd\", \"httpd.worker\", \"flask\", \"rails\", \"mongrel\"\n     )\n   ) or\n   (process.name : (\"ruby*\", \"perl*\", \"python*\", \"java\") and file.path : \"/var/www/*\") and\n   not (\n     file.name in (\n       \"config-livewaf.php\", \"pageviews-busy.php\", \"attack-data.php\", \"config-synced.php\", \"packages.php\", \"README.txt\"\n     ) or\n     file.name like~ \"cookie*.txt\" or\n     file.path like (\"/tmp/requestdir/*\", \"/var/www/html/storage*\", \"/var/www/*/Cache/*\", \"/var/www/*/cache/*\") or\n     file.extension like (\"log\", \"*-*-*\", \"webm\") or\n     process.executable like~ \"/root/miniconda3/bin/python*\"\n   )\n  ]\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1505
+          name: Server Software Component
+          reference: "https://attack.mitre.org/techniques/T1505/"
+          subtechnique:
+            - id: T1505.003
+              name: Web Shell
+              reference: "https://attack.mitre.org/techniques/T1505/003/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

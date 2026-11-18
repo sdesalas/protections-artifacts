@@ -1,0 +1,82 @@
+id: "901f0c30-a7c5-40a5-80e3-a50c6744632f_1.0.41"
+type: security-rule
+attributes:
+  description: |
+    Identifies when RunDLL32 or Regsvr32 loads an executable that was dropped by commonly abused programs via phishing such
+    as Microsoft Office or Powershell. An adversary may deliver a weaponized Office document to their target that writes and
+    executes a malicious DLL.
+  rule_id: "901f0c30-a7c5-40a5-80e3-a50c6744632f"
+  license: Elastic License v2
+  name: RunDLL32/Regsvr32 Loads Dropped Executable
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/Hunting-for-Suspicious-Windows-Libraries-for-Execution-and-Evasion"
+  version: "1.0.41"
+  query: "sequence with maxspan=1m\n  [ file where event.action != \"deletion\" and\n    not user.id : (\"S-1-5-18\", \"S-1-5-19\", \"S-1-5-20\") and\n      process.name :\n          (\"WINWORD.EXE\",\n           \"EXCEL.EXE\",\n           \"POWERPNT.EXE\",\n           \"MSACCESS.EXE\",\n           \"MSHTA.EXE\",\n           \"wscript.exe\",\n           \"CertUtil.exe\",\n           \"CertReq.exe\",\n           \"Cmd.exe\",\n           \"xcopy.exe\",\n           \"curl.exe\",\n           \"powershell.exe\") and\n      (\n        file.extension : (\"dll\", \"cpl\", \"ocx\") or\n        // Match Windows PE files by header data (MZ)\n        file.Ext.header_bytes : \"4d5a*\"\n      ) and\n  not (file.path : (\"?:\\\\oracle\\\\x86\\\\bin\\\\*\", \"?:\\\\oracle\\\\x64\\\\bin\\\\*\") and process.name : \"xcopy.exe\") and\n  not (process.name : \"cmd.exe\" and \n      file.path : (\"?:\\\\PROBAS\\\\*\", \"?:\\\\Windows\\\\SysWOW64\\\\*\", \"?:\\\\Windows\\\\System32\\\\*\",  \"C:\\\\Development\\\\Components\\\\*.dll\"))\n  ] as event0\n  [ library where process.name : (\"rundll32.exe\", \"regsvr32.exe\") and\n    stringcontains~(dll.path, event0.file.path) and\n    not dll.code_signature.trusted == true and not user.id : (\"S-1-5-18\", \"S-1-5-19\", \"S-1-5-20\") and\n    not dll.path : (\"?:\\\\Program Files (x86)\\\\*\", \"?:\\\\Program Files\\\\*\") and\n    not (dll.pe.original_file_name == \"RbkVssProvider.dll\" and dll.path : \"?:\\\\Windows\\\\Temp\\\\rubrik_vmware*\\\\RbkVssProvider.dll\") and\n    not dll.pe.imphash : \"7ce8b277ed3218e26a4bab54ca4af843\" and\n    not dll.hash.sha256 in (\"2a95cf7d3189920f30bc35b0ca2ee50097d8b9d959582fee913e3f0125feec3b\",\n                            \"3adc5ac350d41a1c29e900089b09d237374fe4e9c8887dbe75d2ba0af982c798\",\n                            \"76985a241b88f74d6962af99c3f9493a1db234e4633271785ab5759cf8de9a5f\",\n                            \"e40828a0802b3bf759978a7b68b9534c55bf57036de1f872ccbce38ad2afa20b\",\n                            \"27912b78125ffcbef3f7239ab394552b1c0d188a0275f691bfaa87e072795bf9\") and\n    not (process.name : \"regsvr32.exe\" and dll.path : \"C:\\\\Oracle\\\\*.dll\")]\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+            - id: T1566.002
+              name: Spearphishing Link
+              reference: "https://attack.mitre.org/techniques/T1566/002/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.001
+              name: PowerShell
+              reference: "https://attack.mitre.org/techniques/T1059/001/"
+            - id: T1059.003
+              name: Windows Command Shell
+              reference: "https://attack.mitre.org/techniques/T1059/003/"
+            - id: T1059.005
+              name: Visual Basic
+              reference: "https://attack.mitre.org/techniques/T1059/005/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.010
+              name: Regsvr32
+              reference: "https://attack.mitre.org/techniques/T1218/010/"
+            - id: T1218.011
+              name: Rundll32
+              reference: "https://attack.mitre.org/techniques/T1218/011/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

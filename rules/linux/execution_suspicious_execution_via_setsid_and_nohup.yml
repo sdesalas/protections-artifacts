@@ -1,0 +1,56 @@
+id: "18d82674-08d0-408e-801b-468e1b06298f_1.0.6"
+type: security-rule
+attributes:
+  description: |
+    Detects the execution of setsid and nohup commands with unusual arguments. Attackers may use these commands to establish
+    persistence on a target system or to execute commands in the background.
+  rule_id: "18d82674-08d0-408e-801b-468e1b06298f"
+  license: Elastic License v2
+  name: Suspicious Execution via setsid and nohup
+  os_list:
+    - linux
+  reference:
+    - "https://www.elastic.co/security-labs/primer-on-persistence-mechanisms"
+  version: "1.0.6"
+  query: |
+    process where event.type == "start" and event.action == "exec" and process.name in ("setsid", "nohup") and
+    process.command_line like~ (
+      "*/dev/tcp*", "*/dev/udp/*", "*import*pty*spawn*", "*import*subprocess*call*", "*TCPSocket.new*", "*TCPSocket.open*",
+      "*io.popen*", "*os.execute*", "*fsockopen*", "*disown*"
+    )
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+      tree: true
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,38 @@
+id: d09ce1d0-f961-4eae-906c-22e551a1c3b6_1.0.22
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to create a process with Microsoft mitigation policy set prevent loading non Microsoft signed DLLs.
+    Adversaries may abuse this feature to prevent loading Endpoint security DLLs that lacks this code signing requirement.
+  rule_id: d09ce1d0-f961-4eae-906c-22e551a1c3b6
+  license: Elastic License v2
+  name: Process Creation with Unusual Mitigation
+  os_list:
+    - windows
+  reference:
+    - "https://blog.xpnsec.com/protecting-your-malware/"
+    - "https://www.elastic.co/security-labs/pikabot-i-choose-you"
+  version: "1.0.22"
+  query: "process where event.type == \"start\" and process.executable != null and \n process.parent.executable != null and process.Ext.token.integrity_level_name != \"low\" and\n process.Ext.mitigation_policies : \"Microsoft only\" and \n (\n  (process.parent.thread.Ext.call_stack_contains_unbacked == true and\n   process.parent.thread.Ext.call_stack_summary :\n               (\"ntdll.dll|Unbacked\",\n                \"ntdll.dll|kernelbase.dll|Unbacked\", \n                \"ntdll.dll|kernelbase.dll|kernel32.dll|Unbacked\",\n                \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked\", \n                \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|kernel32.dll|Unbacked\", \n                \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked|kernel32.dll|ntdll.dll\")) or \n                \n   process.parent.Ext.real.pid > 0 or \n\n   (process.parent.thread.Ext.call_stack_summary : \"ntdll.dll|*\" and \n    not process.parent.thread.Ext.call_stack_summary : (\"*kernelbase.dll*\", \"*rpcrt4.dll*\", \"ntdll.dll|tmmon64.dll\"))\n ) and \n not (process.Ext.token.integrity_level_name : \"system\" and \n      process.executable :\n               (\"?:\\\\ProgramData\\\\Microsoft\\\\Windows Defender Advanced Threat Protection\\\\DataCollection\\\\*.exe\",\n                \"\\\\Device\\\\HarddiskVolume*\\\\ProgramData\\\\Microsoft\\\\Windows Defender Advanced Threat Protection\\\\DataCollection\\\\*.exe\")) and\n not (process.code_signature.subject_name : (\"Microsoft Windows Defender Advanced Threat Protection\", \"Wavesor Software (Eightpoint Technologies Ltd. SEZC)\") and \n      process.code_signature.status : \"trusted\" and process.Ext.token.integrity_level_name : \"system\") and \n not (process.parent.executable : \"?:\\\\Windows\\\\System32\\\\hv*.exe\" and process.executable : \"?:\\\\Windows\\\\System32\\\\hv*.exe\") and\n not (process.executable : \"?:\\\\Program Files\\\\Microsoft Office\\\\root\\\\vfs\\\\*\\\\AI\\\\ai.exe\" and process.parent.executable : \"?:\\\\Program Files\\\\Microsoft Office\\\\*.EXE\") and\n not (process.executable : \"?:\\\\Program Files (x86)\\\\Microsoft Office\\\\*\\\\AI\\\\ai.exe\" and process.parent.executable : \"?:\\\\Program Files (x86)\\\\Microsoft Office\\\\*.EXE\") and\n not (process.parent.executable : \"?:\\\\Windows\\\\System32\\\\browser_broker.exe\" and process.executable : \"?:\\\\Windows\\\\System32\\\\browser_broker.exe\") and\n not (process.executable : \"?:\\\\Windows\\\\System32\\\\vmwp.exe\" and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\vmcompute.exe\") and \n not (process.parent.executable : \"?:\\\\Windows\\\\System32\\\\lsass.exe\" and process.executable : \"?:\\\\Windows\\\\system32\\\\lsass.exe\" and \n      user.id == \"S-1-5-18\") and\n not (process.executable : \"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\" and\n      process.parent.executable : \"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\") and\n not (process.executable : \"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\" and\n      process.parent.executable : \"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\") and\n not (process.executable : \"C:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Yandex\\\\YandexBrowser\\\\Application\\\\browser.exe\" and\n      process.parent.executable : \"C:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Yandex\\\\YandexBrowser\\\\Application\\\\browser.exe\" and\n      process.code_signature.subject_name == \"YANDEX LLC\" and process.code_signature.trusted == true) and\n not (process.executable : \"C:\\\\Windows\\\\System32\\\\Dism.exe\" and process.args : \"/Online\" and\n      (process.parent.executable : (\"C:\\\\Program Files\\\\*.exe\", \"C:\\\\Program Files (x86)\\\\*\") or user.id == \"S-1-5-18\")) and\n not (process.executable : \"?:\\\\Windows\\\\system32\\\\DllHost.exe\" and\n      process.parent.executable : \"?:\\\\Windows\\\\System32\\\\dllhost.exe\" and\n      process.args : \"/Processid:{3EB3C877-1F16-487C-9050-104DBCD66683}\" and\n      process.parent.thread.Ext.call_stack_summary : \"ntdll.dll|kernel32.dll|ntdll.dll\") and\n not (process.parent.thread.Ext.call_stack_summary : \"ntdll.dll|atcuf*.dll|Unbacked\" and\n      _arraysearch(process.parent.thread.Ext.call_stack, $entry,\n               $entry.symbol_info : \"?:\\\\Program Files*\\\\N-able Technologies\\\\AVDefender\\\\*.dll!*\")) and\n not (process.executable : \"?:\\\\Windows\\\\System32\\\\CastSrv.exe\" and process.parent.args : \"CCastServerControlInteractiveUser\" and\n      process.parent.executable : \"?:\\\\Windows\\\\System32\\\\CastSrv.exe\") and\n not (process.name : \"powershell.exe\" and user.id in (\"S-1-5-19\", \"S-1-5-20\") and process.parent.name : \"powershell.exe\" and\n      process.parent.args :\n               (\"& {$OutputEncoding = [Console]::OutputEncoding =[System.Text.Encoding]::UTF8;$scriptFileStream = [System.IO.File]::Open('C:\\\\ProgramData\\\\Microsoft\\\\Windows Defender Advanced Threat Protection\\\\Downloads\\\\PSScript*\",\n                \"& {if ($ExecutionContext.SessionState.LanguageMode -eq 'FullLanguage') {$OutputEncoding = [Console]::OutputEncoding =[System.Text.Encoding]::UTF8}else {chcp 65001};Start-Transcript -Path 'C:\\\\ProgramData\\\\Microsoft\\\\Windows Defender Advanced Threat Protection\\\\Temp\\\\PSScriptOutputs\\\\PSScript_Transcript_*\")) and\n not _arraysearch(process.parent.thread.Ext.call_stack, $entry, $entry.callsite_trailing_bytes : \"8945ac65488b042530000000448ba05012000065488b042530000000448b6868eb0a448b642460448b6c24644d85ff7409498b0748894598eb0448897598448b\") and\n not (process.executable : \"?:\\\\Program Files\\\\Microsoft Office\\\\root\\\\vfs\\\\ProgramFilesCommonX64\\\\Microsoft Shared\\\\Office??\\\\AI\\\\aimgr.exe\" and\n      process.parent.executable : \"?:\\\\Program Files\\\\Microsoft Office\\\\root\\\\Office??\\\\*.EXE\")\n"
+  min_endpoint_version: "8.8.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.8.0"

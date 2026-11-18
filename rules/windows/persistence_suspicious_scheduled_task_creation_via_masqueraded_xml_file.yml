@@ -1,0 +1,53 @@
+id: "1efc0496-106b-4c09-b99b-91cdd17ba7b3_1.0.34"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a scheduled task using an XML file that does not have a .xml file extension. This behavior is
+    consistent with an adversary attempting to establish persistence in a stealthy manner to evade detection.
+  rule_id: "1efc0496-106b-4c09-b99b-91cdd17ba7b3"
+  license: Elastic License v2
+  name: Suspicious Scheduled Task Creation via Masqueraded XML File
+  os_list:
+    - windows
+  reference:
+    - "https://docs.microsoft.com/en-us/windows/win32/taskschd/daily-trigger-example--xml-"
+  version: "1.0.34"
+  query: "process where event.action == \"start\" and\n  process.pe.original_file_name : \"schtasks.exe\" and\n  process.args : (\"/create\", \"-create\") and\n  process.args : (\"/xml\", \"-xml\") and\n  not process.command_line : \"*.xml*\" and\n  not process.Ext.token.integrity_level_name == \"system\" and\n  not process.parent.executable : \n             (\"?:\\\\ProgramData\\\\OEM\\\\UpgradeTool\\\\CareCenter_*\\\\BUnzip\\\\Setup_msi.exe\", \n              \"?:\\\\Program Files\\\\Axis Communications\\\\AXIS Camera Station\\\\SetupActions.exe\",\n              \"?:\\\\Program Files\\\\Axis Communications\\\\AXIS Device Manager\\\\AdmSetupActions.exe\",\n              \"?:\\\\Program Files (x86)\\\\Zemana\\\\AntiMalware\\\\AntiMalware.exe\",\n              \"?:\\\\Program Files\\\\Dell\\\\SupportAssist\\\\pcdrcui.exe\",\n              \"?:\\\\Program Files\\\\Axis Communications\\\\AXIS Camera Station\\\\Installer*\\\\SetupActions.exe\",\n              \"?:\\\\Program Files (x86)\\\\Axis Communications\\\\AXIS Camera Station\\\\Installer*\\\\SetupActions.exe\", \n              \"?:\\\\Program Files\\\\WinCompose\\\\wincompose.exe\") and\n  not (process.parent.name : \"rundll32.exe\" and process.parent.args : \"?:\\\\WINDOWS\\\\Installer\\\\MSI*.tmp,zzzzInvokeManagedCustomActionOutOfProc\")\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+          subtechnique:
+            - id: T1053.005
+              name: Scheduled Task
+              reference: "https://attack.mitre.org/techniques/T1053/005/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.005
+              name: Match Legitimate Resource Name or Location
+              reference: "https://attack.mitre.org/techniques/T1036/005/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

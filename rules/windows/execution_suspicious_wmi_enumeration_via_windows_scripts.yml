@@ -1,0 +1,45 @@
+id: ee5d33a2-604f-4466-bace-4aea921846ed_1.0.12
+type: security-rule
+attributes:
+  description: |
+    Identifies WMI activity performed by common Windows Scripting utilities, this could be the result of the execution of a
+    malicious JScript or VBscript malware.
+  rule_id: ee5d33a2-604f-4466-bace-4aea921846ed
+  license: Elastic License v2
+  name: Suspicious WMI Enumeration via Windows Scripts
+  os_list:
+    - windows
+  version: "1.0.12"
+  query: "api where process.name in~ (\"wscript.exe\", \"mshta.exe\", \"msxsl.exe\") and\n  process.Ext.api.name == \"IWbemServices::ExecQuery\" and\n  process.Ext.api.summary :\n                (\"IWbemServices::ExecQuery( Select * from Win32_ComputerSystemProduct )\",\n                 \"IWbemServices::ExecQuery( Select * from Win32_Process Where Name*\") and\n  not process.command_line :\n                (\"cscript.exe  //NoLogo //B ?:\\\\Windows\\\\System32\\\\slmgr.vbs *\",\n                 \"\\\"C:\\\\WINDOWS\\\\System32\\\\WScript.exe\\\" \\\"\\\\\\\\*\",\n                 \"cscript  \\\"C:\\\\Program Files (x86)\\\\Microsoft Office\\\\Office??\\\\ospp.vbs\\\" /dstatus\",\n                 \"\\\"C:\\\\Windows\\\\System32\\\\WScript.exe\\\" \\\"C:\\\\Program Files (x86)\\\\LIEBHERR\\\\LIKAPLAN\\\\starteplocal.vbs\\\" \",\n                 \"\\\"C:\\\\Windows\\\\system32\\\\wscript.EXE\\\" \\\"C:\\\\Program Files\\\\Barracuda SSM\\\\launchCommonAgent.vbs\\\"\",\n                 \"\\\"C:\\\\Windows\\\\system32\\\\wscript.EXE\\\" \\\"C:\\\\Program Files\\\\Barracuda SSM\\\\launchSaasAgent.vbs\\\"\",\n                 \"C:\\\\WINDOWS\\\\System32\\\\WScript.exe \\\"C:\\\\Program Files\\\\Consol\\\\DhaService\\\\StartToolbox.vbs\\\" \",\n                 \"\\\"C:\\\\Windows\\\\System32\\\\WScript.exe\\\" \\\"C:\\\\Program Files (x86)\\\\Wireless Monitor System V*\\\\start.vbs\\\" \",\n                 \"\\\"wscript.exe\\\" \\\"C:\\\\Program Files\\\\Windows Azure VM Agent *\\\\\\\\InstallOrUpdateGA.vbs\\\"\",\n                 \"*\\\\Windows\\\\SysWOW64\\\\mshta.exe*\\\\ThinkBiosConfig.hta*\") and\n  not process.Ext.api.summary :\n                  (\"IWbemServices::ExecQuery( Select * from Win32_Process Where Name = 'JAVAW.EXE' )\",\n                   \"IWbemServices::ExecQuery( Select * from Win32_Process Where Name = 'POS.EXE' )\",\n                   \"IWbemServices::ExecQuery( Select * from Win32_Process Where Name = 'dcagenttrayicon.exe' )\",\n                   \"IWbemServices::ExecQuery( SELECT * FROM Win32_Process WHERE Name = 'Tracker.exe'  )\",\n                   \"IWbemServices::ExecQuery( Select * from Win32_Process Where Name = 'RapidReprice1G.exe' )\",\n                   \"IWbemServices::ExecQuery( Select * from Win32_Process Where Name = 'Tracker.exe' )\",\n                   \"IWbemServices::ExecQuery( Select Name from Win32_Process WHERE Name LIKE 'DhaToolbox.exe%' )\",\n                   \"IWbemServices::ExecQuery( Select Name from Win32_Process Where Name = 'EXCEL.EXE' )\",\n                   \"IWbemServices::ExecQuery( Select * from Win32_Process Where Name = 'Outlook.exe' )\",\n                   \"IWbemServices::ExecQuery( SELECT * FROM Win32_Process WHERE Name='wscript.exe' )\",\n                   \"SELECT * FROM Win32_Process WHERE NAME = \\\"mshta.exe\\\" AND CommandLine LIKE \\\"%DriverPack Notifier%relaunch%\\\"\",\n                   \"IWbemServices::ExecQuery( SELECT * FROM Win32_Process WHERE Name LIKE '%Bginfo%' )\",\n                   \"IWbemServices::ExecQuery( SELECT * FROM Win32_Process WHERE Name LIKE '%lspush.exe%' )\", \n                   \"IWbemServices::ExecQuery( SELECT ProcessId FROM Win32_Process WHERE Name = 'Paketbar.exe' )\") and\n  user.id != \"S-1-5-18\" and\n  not process.parent.executable :\n                     (\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\frontend\\\\Docker Desktop.exe\",\n                      \"C:\\\\Program Files\\\\Microsoft System Center\\\\Operations Manager\\\\Server\\\\MonitoringHost.exe\",\n                      \"C:\\\\Windows\\\\System32\\\\gpscript.exe\",\n                      \"C:\\\\Program Files (x86)\\\\Thomson Reuters\\\\Eikon\\\\Eikon.exe\",\n                      \"C:\\\\Program Files (x86)\\\\Welcome\\\\Welcome.exe\",\n                      \"C:\\\\Program Files\\\\ametiq\\\\ametiq siMed\\\\*.exe\",\n                      \"C:\\\\Program Files (x86)\\\\PCMatic\\\\PCPitstopScheduleService.exe\", \n                      \"C:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\DriverPack Notifier\\\\DriverPackNotifier.exe\")\n"
+  min_endpoint_version: "8.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1047
+          name: Windows Management Instrumentation
+          reference: "https://attack.mitre.org/techniques/T1047/"
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.005
+              name: Visual Basic
+              reference: "https://attack.mitre.org/techniques/T1059/005/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.15.0"

@@ -1,0 +1,41 @@
+id: "5b00c9ba-9546-47cc-8f9f-1c1a3e95f65c_1.0.38"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a svchost process with an unusual parent. This may indicate an attempt to masquerade a
+    malicious process.
+  rule_id: "5b00c9ba-9546-47cc-8f9f-1c1a3e95f65c"
+  license: Elastic License v2
+  name: Potential Masquerading as SVCHOST
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/siestagraph-new-implant-uncovered-in-asean-member-foreign-ministry"
+    - "https://www.elastic.co/security-labs/dissecting-remcos-rat-part-four"
+  version: "1.0.38"
+  query: "process where event.action == \"start\" and\n  process.name : \"svchost.exe\" and\n  process.parent.executable != null and\n  not process.parent.executable : (\n    \"?:\\\\Windows\\\\System32\\\\services.exe\",\n    \"\\\\Device\\\\HarddiskVolume?\\\\Windows\\\\System32\\\\services.exe\",\n    \"\\\\Device\\\\HarddiskVolume??\\\\Windows\\\\System32\\\\services.exe\",\n    \"?:\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\Platform\\\\*\\\\MsMpEng.exe\",\n    \"?:\\\\Program Files\\\\Microsoft Security Client\\\\MsMpEng.exe\",\n    \"?:\\\\Program Files*\\\\Windows Defender\\\\MsMpEng.exe\",\n    \"?:\\\\Windows\\\\*\\\\rpcnet*.exe\",\n    \"?:\\\\Windows\\\\System32\\\\MRT.exe\",\n    \"?:\\\\Windows\\\\System32\\\\MRT-*.exe\",\n    \"?:\\\\Program Files*\\\\Unity Client\\\\Unity.exe\",\n    \"?:\\\\Windows\\\\System32\\\\wermgr.exe\",\n    \"?:\\\\Windows\\\\System32\\\\svchost.exe\",\n    \"?:\\\\WINDOWS\\\\SysWOW64\\\\svchost.exe\",\n    \"\\\\Device\\\\VhdHardDisk*\\\\Windows\\\\System32\\\\services.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\System32\\\\services.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\Platform\\\\*\\\\MsMpEng.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Program Files\\\\Microsoft Security Client\\\\MsMpEng.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Program Files*\\\\Windows Defender\\\\MsMpEng.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\*\\\\rpcnet*.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\system32\\\\MRT.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Program Files*\\\\Unity Client\\\\Unity.exe\",\n    \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\System32\\\\wermgr.exe\",\n    \"?:\\\\Program Files\\\\Microsoft Security Client\\\\Antimalware\\\\MsMpEng.exe\", \n    \"?:\\\\Program Files (x86)\\\\Microsoft Security Client\\\\Antimalware\\\\MsMpEng.exe\", \n    \"?:\\\\Program Files\\\\Cisco\\\\AMP\\\\*\\\\sfc.exe\", \n    \"?:\\\\Program Files (x86)\\\\Cisco\\\\AMP\\\\*\\\\sfc.exe\", \n    \"?:\\\\Program Files (x86)\\\\AlibabaProtect\\\\*\\\\AlibabaProtect.exe\", \n    \"?:\\\\Program Files\\\\AlibabaProtect\\\\*\\\\AlibabaProtect.exe\", \n    \"?:\\\\Program Files\\\\Microsoft Security Client\\\\Antimalware\\\\MsMpEng.exe\", \n    \"?:\\\\Program Files (x86)\\\\Tencent\\\\QQ\\\\Bin\\\\QQExternal.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Windows\\\\System32\\\\services.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\Platform\\\\*\\\\MsMpEng.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Program Files\\\\Microsoft Security Client\\\\MsMpEng.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Program Files*\\\\Windows Defender\\\\MsMpEng.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Windows\\\\*\\\\rpcnet*.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Windows\\\\system32\\\\MRT.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Program Files*\\\\Unity Client\\\\Unity.exe\", \n    \"\\\\\\\\?\\\\Volume{*}\\\\Windows\\\\System32\\\\wermgr.exe\", \n    \"?:\\\\Program Files (x86)\\\\Common Files\\\\One Identity\\\\Safeguard Privilege Manager for Windows\\\\Client\\\\CSEHost.exe\") and\n  not (process.parent.executable : \"?:\\\\Windows\\\\system32\\\\svchost.exe\" and process.executable : \"?:\\\\Windows\\\\syswow64\\\\svchost.exe\") and\n  not (process.parent.executable :\n                   (\"?:\\\\Windows\\\\System32\\\\svchost.exe\",\n                    \"?:\\\\Program Files\\\\COMODO\\\\COMODO Internet Security\\\\cmdvirth.exe\",\n                    \"?:\\\\Program Files (x86)\\\\Adobe\\\\Acrobat Reader DC\\\\Reader\\\\acrocef*\\\\RdrCEF.exe\") and\n       process.Ext.token.integrity_level_name == \"system\") and\n  not (process.pe.original_file_name == \"AsDVDLock.exe\" and\n       process.executable : \"?:\\\\Program Files (x86)\\\\ASUS\\\\ASUS Manager\\\\USB Lock\\\\svchost.exe\") and\n  not (process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and process.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\") and\n  not (process.code_signature.subject_name : (\"SyncFuture Software Company Limited\", \"Code Systems Corporation\") and process.code_signature.trusted == true)\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.004
+              name: Masquerade Task or Service
+              reference: "https://attack.mitre.org/techniques/T1036/004/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,41 @@
+id: d230b7d8-b5cf-4d94-ba4c-4635f8c0497c_1.0.7
+type: security-rule
+attributes:
+  description: |
+    Detects when a URL is supplied as an argument to a python script via the commandline. Threat actors have been seen
+    utilizing this technique in order to download additional payloads stages or tools.
+  rule_id: d230b7d8-b5cf-4d94-ba4c-4635f8c0497c
+  license: Elastic License v2
+  name: URL as argument to Python Script and Immediate Network Connection
+  os_list:
+    - macos
+  version: "1.0.7"
+  query: "sequence by process.entity_id with maxspan=30s\n[process where event.type == \"start\" and event.action == \"exec\" and \n  process.args like~ \"python*\" and process.args like (\"/Users/*\", \"/tmp/*\", \"/private/tmp/*\", \"/var/tmp/*\") and \n  process.args like~ \"http*\" and \n  process.args_count <= 3 and \n  not process.name in (\"curl\", \"nscurl\", \"wget\", \"git\", \"git-remote-http\", \"http\", \"hg\")]\n[network where event.type == \"start\"]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+          subtechnique:
+            - id: T1071.001
+              name: Web Protocols
+              reference: "https://attack.mitre.org/techniques/T1071/001/"
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.16.0"

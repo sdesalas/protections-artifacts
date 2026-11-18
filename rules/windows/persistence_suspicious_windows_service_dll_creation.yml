@@ -1,0 +1,36 @@
+id: "2c624716-75a1-42d9-bcb8-1defcb9bded9_1.0.36"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a new service via ServiceDLL registry modification instead of using the Windows Service
+    Control Manager APIs, subsequently loaded by svchost.exe. Adversaries may use this technique to maintain persistence or
+    run with System privileges.
+  rule_id: "2c624716-75a1-42d9-bcb8-1defcb9bded9"
+  license: Elastic License v2
+  name: Suspicious Windows Service DLL Creation
+  os_list:
+    - windows
+  version: "1.0.36"
+  query: "registry where event.action == \"modification\" and \n registry.value : \"ServiceDLL\" and process.executable : (\"?:\\\\*\", \"\\\\Device\\\\Mup\\\\*\") and\n not process.executable : (\"?:\\\\Windows\\\\System32\\\\services.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\msiexec.exe\",\n                           \"?:\\\\Windows\\\\SysWOW64\\\\msiexec.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\poqexec.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\w32tm.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\spoolsv.exe\",\n                           \"?:\\\\Windows\\\\servicing\\\\TrustedInstaller.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\sdiagnhost.exe\",\n                           \"?:\\\\Windows\\\\WinSxS\\\\*\\\\TiWorker.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\drvinst.exe\",\n                           \"?:\\\\Program Files (x86)\\\\*.exe\",\n                           \"?:\\\\Program Files\\\\*.exe\",\n                           \"?:\\\\Windows\\\\Temp\\\\*-*-*\\\\DismHost.exe\",\n                           \"?:\\\\$WINDOWS.~BT\\\\Work\\\\*\\\\DismHost.exe\",\n                           \"?:\\\\$WinREAgent\\\\Scratch\\\\*\\\\DismHost.exe\",\n                           \"?:\\\\Windows\\\\SoftwareDistribution\\\\*.exe\",\n                           \"?:\\\\Windows\\\\regedit.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\reg.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\lsass.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\upfc.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\SearchProtocolHost.exe\",\n                           \"?:\\\\Windows\\\\SystemApps\\\\Microsoft.Windows.Search_*\\\\SearchApp.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\conhost.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\oobe\\\\UserOOBEBroker.exe\",\n                           \"?:\\\\Windows\\\\CCM\\\\SCNotification.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\PrintIsolationHost.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\sppsvc.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\backgroundTaskHost.exe\",\n                           \"?:\\\\*\\\\procexp64.exe\",\n                           \"C:\\\\Windows\\\\SystemTemp\\\\*\\\\DismHost.exe\") and\n\n not (process.executable : (\"?:\\\\Windows\\\\System32\\\\svchost.exe\",\n                            \"?:\\\\Windows\\\\System32\\\\regsvr32.exe\",\n                            \"?:\\\\Windows\\\\SysWOW64\\\\regsvr32.exe\",\n                            \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\*\\\\DismHost.exe\",\n                            \"?:\\\\Windows\\\\Temp\\\\osrssinst.exe\",\n                            \"?:\\\\Windows\\\\regedit.exe\",\n                            \"?:\\\\$WINDOWS.~BT\\\\Work\\\\*\\\\DismHost.exe\") and\n      registry.data.strings : (\"%systemroot%\\\\system32\\\\*\", \"?:\\\\Windows\\\\System32\\\\*\", \"%systemroot%\\\\syswow64\\\\*\",\n                               \"?:\\\\Windows\\\\SysWOW64\\\\*\", \"*:\\\\Program Files\\\\*\", \"*:\\\\Program Files (x86)\\\\*\")) and\n\n not registry.data.strings : \"?:\\\\WINDOWS\\\\system32\\\\spool\\\\drivers\\\\x64\\\\3\\\\PrintConfig.dll\" and\n\n not (registry.data.strings : \"?:\\\\Program Files (x86)\\\\dolphinpaper\\\\provider\\\\wpprovider.dll\" and\n      registry.path : \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Services\\\\dolphinSvc\\\\Parameters\\\\ServiceDll\") and\n\n not (process.code_signature.subject_name : (\"Speckled Jay LLC\", \"Refraction Point, Inc\", \"Arcadia Laboratories Inc.\") and process.code_signature.trusted == true) and\n\n not (process.name : \"Dismhost.exe\" and registry.data.strings : (\"%systemroot%\\\\system32\\\\wuaueng.dll\", \"%SystemRoot%\\\\System32\\\\browser.dll\") and\n      process.code_signature.subject_name : \"Microsoft*\" and process.code_signature.trusted == true)\n"
+  min_endpoint_version: "8.1.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1543
+          name: Create or Modify System Process
+          reference: "https://attack.mitre.org/techniques/T1543/"
+          subtechnique:
+            - id: T1543.003
+              name: Windows Service
+              reference: "https://attack.mitre.org/techniques/T1543/003/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "8.1.0"

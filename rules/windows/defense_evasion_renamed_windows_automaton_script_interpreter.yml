@@ -1,0 +1,41 @@
+id: "92d720dd-93b2-49e0-b68a-d5d6acbe4910_1.0.37"
+type: security-rule
+attributes:
+  description: |
+    Identifies suspicious execution of commonly abused third party Windows automation script interpreters. Attackers may
+    rename AutoHotKey, Rebol or KIXTART executable files or execute scripts from suspicious paths in an attempt to avoid
+    signature-based detection.
+  rule_id: "92d720dd-93b2-49e0-b68a-d5d6acbe4910"
+  license: Elastic License v2
+  name: Renamed Windows Automaton Script Interpreter
+  os_list:
+    - windows
+  reference:
+    - "https://blog.morphisec.com/explosive-new-mirrorblast-campaign-targets-financial-companies"
+  version: "1.0.37"
+  query: "process where event.action == \"start\" and\n  (\n     /* renamed */\n   (process.pe.original_file_name : \"AutoHotkey.exe\" and not process.name : (\"AutoHotkey*.exe\", \"InternalAHK.exe\")) or\n   (process.pe.original_file_name : \"KIX32.EXE\" and not process.name : \"KIX*.EXE\") or \n   (process.name : \"rebol-view*.exe\" and process.parent.name : \"msiexec.exe\") or \n   (process.name : (\"KIX32.EXE\", \"rebol-view*.exe\", \"AutoIt*.exe\") and\n     \n\t /* execution from common suspicious paths */\n     process.args : (\"?:\\\\Users\\\\Public\\\\*\", \n                     \"?:\\\\ProgramData\\\\*\", \n                     \"?:\\\\Users\\\\*\\\\AppData\\\\*\", \n                     \"?:\\\\Windows\\\\Temp\\\\*\",\n                     \"?:\\\\Windows\\\\Tasks\\\\*\")) or \n    \n\t/* legit rebol script interpreter has no original file name thus adding this hash abused by mirrorblast*/\n    process.hash.sha256 : \"215e28f9660472b6271a9902573c9d190e4d7ccca33fcf8d6054941d52a3ab85\" or \n\t\n\t/* unusual script extension */\n\t(process.name : (\"rebol-view*.exe\", \"AutoHotkey*.exe\", \"KIX*.EXE\") and process.args_count == 2 and \n\t not process.command_line : (\"*.ahk*\", \"*.rb*\", \"*.kix*\", \"*.scr*\", \"*.bms\")) or \n\n        (process.Ext.relative_file_creation_time <= 300 and process.pe.original_file_name : \"node.exe\" and \n\t process.code_signature.subject_name : \"Node.js Foundation\" and not process.name : \"node*.exe\" and \n         process.executable : (\"?:\\\\Users\\\\*\", \"?:\\\\ProgramData\\\\*\")) \n   \n   ) and  \n   \n   /* FP - chocolatey installs and runs Autohotkey from programdata */\n   not (process.pe.original_file_name : \"AutoHotkey*.exe\" and\n         process.executable : (\"?:\\\\ProgramData\\\\chocolatey\\\\*\", \n                               \"?:\\\\Program Files\\\\AutoHotkey\\\\AutoHotkey*.exe\",\n                               \"?:\\\\Program Files (x86)\\\\AutoHotkey\\\\AutoHotkey*.exe\")) and\n   not (process.executable : \"?:\\\\ProgramData\\\\chocolatey\\\\lib\\\\autohotkey.install\\\\tools\\\\AutoHotkey_*setup.exe\" and \n        process.parent.executable : \"?:\\\\ProgramData\\\\chocolatey\\\\choco.exe\") and\n   not (process.pe.original_file_name == \"KIX32.EXE\" and process.command_line : \"*\\\\NETLOGON\\\\*\") and\n   not (process.pe.original_file_name == \"KIX32.EXE\" and process.parent.command_line : \"*\\\\netlogon\\\\*\") and\n   not (process.pe.original_file_name == \"KIX32.EXE\" and\n        process.executable : (\"C:\\\\kworking\\\\Bin\\\\RMMKSE.EXE\", \"C:\\\\kworking\\\\Bin\\\\RMMSSE.EXE\", \"?:\\\\ProgramData\\\\MSPB\\\\Bin\\\\RMMSSE.EXE\")) and\n   not (process.pe.original_file_name == \"AutoHotkey.exe\" and process.executable : \"C:\\\\TCPU73\\\\Programm\\\\ClockTC\\\\ClockTC.exe\" and\n        process.parent.executable : \"C:\\\\TCPU73\\\\TOTALCMD.EXE\") and\n   not process.executable :\n                    (\"?:\\\\Program Files\\\\AutoHotkey\\\\SciTE\\\\InternalAHK.exe\",\n                     \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Programs\\\\AutoHotkey\\\\UX\\\\AutoHotkeyUX.exe\",\n                     \"C:\\\\Windows\\\\ccmcache\\\\*.exe\",\n                     \"C:\\\\Windows\\\\IMECache\\\\*.exe\",\n                     \"\\\\Device\\\\Mup\\\\*\\\\kix32.exe\") and\n   not process.parent.executable :\n                          (\"?:\\\\Program Files\\\\KeePass Password Safe ?\\\\KeePass.exe\",\n                           \"?:\\\\Program Files (x86)\\\\AutoIt3\\\\AutoIt3.exe\",\n                           \"?:\\\\Program Files\\\\Far Manager\\\\Far.exe\",\n                           \"?:\\\\Users\\\\*\\\\Stepwise\\\\Stepwise.exe\",\n                           \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Programs\\\\AutoHotkey\\\\UX\\\\AutoHotkeyUX.exe\",\n                           \"C:\\\\Program Files (x86)\\\\SofttechLLC\\\\FlightVector\\\\FlightVector.exe\",\n                           \"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.DesktopAppInstaller_*\\\\winget.exe\") and\n   /* FP - Patch My PC enterprise patch management deploying AutoHotkey */\n   not (process.executable : \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\AutoHotkey_*_setup.exe\" and\n        process.parent.executable : \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\PatchMyPC-ScriptRunner.exe\")\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.003
+              name: Rename Legitimate Utilities
+              reference: "https://attack.mitre.org/techniques/T1036/003/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

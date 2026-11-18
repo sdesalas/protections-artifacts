@@ -1,0 +1,48 @@
+id: cd3a06dc-58c3-4d57-a03a-0d8991f237e7_1.0.22
+type: security-rule
+attributes:
+  description: |
+    Detects the abnormal use of the echo command via a shell to write text into a file located in a suspicious location.
+    Threat actors have used this as a method for creating second stage payloads on systems after initial access has been
+    achieved.
+  rule_id: cd3a06dc-58c3-4d57-a03a-0d8991f237e7
+  license: Elastic License v2
+  name: Suspicious File Overwrite and Modification via Echo
+  os_list:
+    - macos
+  version: "1.0.22"
+  query: "sequence by process.entity_id with maxspan=20s\n[process where event.type == \"start\" and event.action == \"exec\" and \n    process.name in (\"bash\", \"sh\", \"zsh\") and\n    process.args == \"-c\" and\n    process.args like~ (\"echo* > /.*\", \n                        \"echo* > /usr/local/bin/*\", \n                        \"echo* > ~/.*\", \n                        \"echo* > /tmp/*\", \n                        \"echo* > /var/root/*\", \n                        \"echo* > /private/tmp/*\", \n                        \"echo* > /var/tmp/*\", \n                        \"echo* > /var/folders/*\", \n                        \"echo* > /Library/*\", \n                        \"echo* > /Users/*\", \n                        \"echo* > ~/*\") and \n    process.args_count <= 3 and \n    process.Ext.effective_parent.name == null and \n    not process.parent.executable like (\"/Library/Developer/*\", \"/Applications/Xcode.app/Contents/*\")]\n[file where event.action == \"modification\" and process.name in (\"sh\", \"zsh\", \"bash\") and\n    not file.path like~ (\"/private/tmp/docker-desktop-privileged*/exitcode.txt\", \"/Users/*/Library/Logs/zoom.us/crashlog/usage.txt\")]\n"
+  min_endpoint_version: "8.5.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1027
+          name: Obfuscated Files or Information
+          reference: "https://attack.mitre.org/techniques/T1027/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.5.0"

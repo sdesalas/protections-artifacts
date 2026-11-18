@@ -1,0 +1,39 @@
+id: "458f0b4b-be9a-45bc-8f19-a26dac267250_1.0.32"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a thread in a remote process, this type of behavior may indicate inter-process code
+    injection. Adversaries may inject code into processes in order to evade process-based defenses as well as possibly
+    elevate privileges.
+  rule_id: "458f0b4b-be9a-45bc-8f19-a26dac267250"
+  license: Elastic License v2
+  name: Potential Code Injection via Remote Thread
+  os_list:
+    - macos
+  reference:
+    - "https://knight.sc/malware/2019/03/15/code-injection-on-macos.html"
+  version: "1.0.32"
+  query: |
+    process where event.action == "remote_thread" and
+     not process.executable like
+              ("/usr/libexec/rosetta/debugserver",
+               "/Library/Developer/CoreSimulator/*/RemoteInjectionAgent",
+               "/Applications/Xcode*.app/Contents/SharedFrameworks/DVTInstrumentsFoundation.framework/Versions/A/Resources/RemoteInjectionAgent")
+  min_endpoint_version: "8.7.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.7.0"

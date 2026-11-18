@@ -1,0 +1,71 @@
+id: "318e6a4f-fb72-4010-a625-d41bae9e349a_1.0.8"
+type: security-rule
+attributes:
+  description: |
+    This rule detects potential remote code execution attempts via commonly used mail server applications, by monitoring for
+    unusual child processes and command line arguments.
+  rule_id: "318e6a4f-fb72-4010-a625-d41bae9e349a"
+  license: Elastic License v2
+  name: Potential Remote Code Execution via Mail Server
+  os_list:
+    - linux
+  version: "1.0.8"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.interactive == false and\n(\n  process.parent.name in (\"exim4\", \"postfix\", \"smtpd\", \"sendmail\", \"dovecot\", \"amavisd-new\", \"amavisd\", \"spamd\") or\n  (\n    process.parent.name == \"master\" and\n    process.parent.executable like \"/*/postfix*master\"\n  )\n) and\nnot (\n  (process.parent.name == \"exim4\" and process.args like \"/usr/lib/nagios/plugins/check_file_age*\") or\n  (process.parent.name in (\"amavisd-new\", \"amavisd\") and process.command_line == \"/usr/bin/gzip -d\") or\n  (process.parent.name == \"dovecot\" and process.command_line == \"gzip\") or\n  (process.parent.name == \"amavisd\" and process.name == \"amavisd\")\n) and\n(\n  process.name in (\n    \"scp\", \"gzip\", \"bzip2\", \"xz\", \"tar\", \"getcap\", \"capsh\", \"find\", \"nohup\", \"setsid\", \"timeout\", \"disown\",\n    \"mkfifo\", \"printenv\", \"env\", \"chpasswd\", \"echo\"\n  ) or\n  (\n    process.name == \"touch\" and\n    not process.args like (\n      \"/home/*/.esmtp_queue/*/lock\", \"/root/.esmtp_queue/*/lock\", \"/prod/prod/data/prodstage/possum/error/\"\n    )\n  ) or\n  process.name like \".*\" or\n  (\n    process.name in (\"whoami\", \"id\", \"hostname\", \"uname\", \"ps\", \"netstat\", \"ss\", \"ip\", \"ifconfig\") and\n    process.interactive == true and process.parent.interactive == false\n  ) or\n  process.executable like (\"/dev/shm/*\", \"/tmp/*\", \"/var/tmp/*\", \"/root/*\", \"./*\") or\n  (\n    process.executable like (\"/bin/python*\", \"/usr/bin/python*\", \"/usr/local/bin/python*\") and (\n      process.args == \"-c\" or\n      (\n        process.args_count <= 2 and\n        process.args like (\"/tmp/*\", \"/var/tmp/*\", \"/dev/shm/*\", \"/var/www/*\", \"/root/*\", \"/home/*/*\", \"./*.py\") and\n        process.args like \"*.py*\"\n      )\n    ) and\n    not process.args in (\"--version\", \"app.py\")\n  ) or\n  (\n    process.executable like (\n      \"/bin/perl*\", \"/usr/bin/perl*\", \"/usr/local/bin/perl*\",\n      \"/bin/ruby*\", \"/usr/bin/ruby*\", \"/usr/local/bin/ruby*\",\n      \"/bin/lua*\", \"/usr/bin/lua*\", \"/usr/local/bin/lua*\",\n      \"/bin/node\", \"/usr/bin/node\", \"/usr/local/bin/node\"\n    ) and\n    (process.args like \"-e*\" or process.args_count <= 2)\n  ) or\n  (\n    process.executable like (\"/bin/php*\", \"/usr/bin/php*\", \"/usr/local/bin/php*\") and\n    (process.args like \"-r*\" or process.args_count <= 2) and\n    not (\n      process.args like \"var_export*\" or\n      process.command_line in (\"php -r echo get_current_user().PHP_EOL;\", \"php -r echo date('T');\")\n    ) \n  ) or\n  (\n    process.name in (\"nc\", \"ncat\", \"netcat\", \"netcat.openbsd\", \"netcat.traditional\", \"nc.openbsd\", \"nc.traditional\") and (\n      process.command_line regex \".*[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}.*\" or\n      process.command_line like \"*http*\"\n    ) and\n    not process.args in (\"localhost\", \"127.0.0.1\", \"-z\", \"-zv\") \n  ) or\n  (\n    process.name == \"socat\" and\n    process.command_line like~ (\"*exec*\", \"*tty*\", \"*fork*\", \"*file*\", \"*open*\") and\n    process.command_line like~ (\"*tcp*\", \"*udp*\", \"*openssl*\")\n  ) or\n  (\n    process.name == \"openssl\" and (\n      process.command_line like (\"*s_server*\", \"*s_client*\") or\n      (process.args == \"enc\" and process.args in (\"-d\", \"-base64\", \"-a\", \"-A\"))\n    )\n  ) or\n  (\n    process.name in (\"curl\", \"wget\") and process.args like~ (\"-o\", \"--output*\", \"-o-\") and (\n      process.command_line regex \".*[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}.*\" or\n      process.command_line like \"*http*\"\n    ) and\n    process.command_line like (\"* /tmp/*\", \"* /var/tmp/*\", \"* /dev/shm/*\", \"* /var/www/*\", \"* ~/*\", \"* /home/*\", \"* /run/*\", \"* /var/run/*\")\n  ) or\n  (\n    process.name in (\"base64\", \"basez\", \"base64plain\", \"base64url\", \"base64mime\", \"base64pem\", \"basenc\", \"base32\", \"base16\") and\n    process.args like~ \"-*d*\"\n  ) or\n  (\n    process.name == \"xxd\" and process.args like~ (\"-*r*\", \"-*p*\")\n  ) or\n  (process.name == \"sudo\" and process.args == \"-l\") or\n  (\n    process.executable like (\"/bin/chmod\", \"/usr/bin/chmod\", \"/usr/local/bin/chmod\") and\n    process.args like (\"+x\", \"a+x\", \"0777\", \"755\", \"777\", \"+s\", \"u+s\", \"g+s\")\n  ) or\n  (\n    process.executable like (\"/bin/cat\", \"/usr/bin/cat\", \"/usr/local/bin/cat\") and\n    process.args like (\n      \"/etc/passwd\", \"/etc/shadow\", \"/etc/hostname\", \"/etc/hosts\", \"*ssh*\", \"/proc/self/environ\",\n      \"*.env*\", \"*../../../*\", \"*/secrets/kubernetes.io/serviceaccount/*\", \"*/.docker/config.json*\",\n      \"*/.npmrc*\", \"*.aws/credentials*\", \"*/.aws/config*\"\n    )\n  ) or\n  (\n    process.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\", \"busybox\") and\n    process.args in (\"-c\", \"-cl\", \"-lc\") and (\n      process.command_line like (\n        /* Suspicious Paths */\n        \"* /tmp/* \", \"* /var/tmp/* \", \"* /dev/shm/*\", \"* /var/www/*\", \"* /run/*\", \"* /var/run/*\",\n\n        /* Interpreter Execution */\n        \"*python* -c*\", \"*php* -r*\", \"*perl* -e*\", \"*ruby* -e*\", \"*lua* -e*\", \"*node * -e *\",\n\n        /* Encoding, Decoding & Piping */\n        \"*|sh\", \"*| sh *\", \"*| sh \", \"*|bash*\", \"*| bash*\", \"*|zsh*\",  \"*| zsh*\", \"*|dash*\",  \"*| dash*\",\n        \"*|python*\", \"*| python*\", \"*|php*\", \"*| php*\", \"*|perl*\", \"*| perl*\", \"*|ruby*\", \"*| ruby*\",\n        \"*|node*\", \"*| node*\", \"*|lua*\",  \"*| lua*\", \"*|busybox*\", \"*| busybox*\", \"*|*base64 -d*\", \"*|*base64 --decode*\",\n        \"*|*base64 --decode*\", \"*|*openssl base64 -d*\", \"*xxd *\", \"*| openssl*enc * -d *\", \"*b64decode -r*\",\n\n        /* Reverse Shells */\n        \"*netcat *\", \"* nc *\", \"*ncat *\", \"*/dev/tcp*\", \"*/dev/udp/*\", \"*socat *\", \"*openssl*s_client *\", \"*stty*raw*-echo*\",\n\n        /* File Access */\n        \"*>*/etc/cron*\", \"*/etc/ssh*\", \"*/home/*/.ssh/*\", \"*/root/.ssh*\", \"*~/.ssh/*\", \"*/etc/shadow*\", \"*/etc/passwd*\", \"*chpasswd*\",\n\n        /* Helpers */\n        \"*nohup*\", \"*setsid *\", \"*timeout *sh -c *\", \"*disown*\", \"*env *sh *-c*\",\n\n        /* Miscellaneous */\n        \"*chattr *\", \"*busybox *\",  \"*#!*\", \"*chmod +x *\", \"*chmod 777*\", \n        \n        /* Decompression */\n        \"*gzip -*d *\", \"*bzip2 -*d *\", \"*xz -*d *\", \"*tar -*x*\",\n         \n         /* Path Traversal */\n         \"*../../../*etc/*\", \"*/.../*\", \"*../../../*home/*/*\", \"*../../../*root/*\"\n      ) or\n      (\n        process.command_line like (\"*wget *\", \"*curl *\") and\n        (\n          process.command_line regex \".*[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}\\\\.[0-9]{1,3}(:[0-9]{1,5})?/.*\" or\n          process.command_line like (\"*http*\", \"*ftp*\")\n        ) and\n        (\n          (\n            process.command_line regex~ \"\"\".*curl.* \\-[a-zA-Z]*[oO]( .+|\\-.*)?\"\"\" or\n            process.command_line like~ (\"*curl* --output*\", \"*curl* --remote-name*\")\n          ) or\n          (\n            (\n              process.command_line regex~ \"\"\".*wget.* \\-[a-zA-Z]*O.*\"\"\" or\n              process.command_line like~ \"*wget* --output-document*\"\n            ) and\n          not process.command_line like \"\"\"*--output-document \"-\"*\"\"\"\n          ) or\n          process.command_line like (\"*|*sh*\", \"*|*python*\", \"*|*php*\", \"*|*perl*\", \"*|*ruby*\", \"*|*node*\", \"*|*lua*\", \"*|*busybox*\") or\n          (\n            process.command_line like (\"*curl *>> /*\", \"*curl *>>/*\", \"*curl *> /*\", \"*curl *>/*\", \"*wget *>> /*\", \"*wget *>>/*\", \"*wget *> /*\", \"*wget *>/*\") and\n            not process.command_line like (\"*> /dev/null*\", \"*>/dev/null*\", \"*curl*/etc/cobra/*/uploads/whatsapp/*\")\n          )\n        ) and\n        not process.command_line like (\"*-O /dev/null*\", \"*-o /dev/null*\")\n      )\n    )\n  )\n) and\nnot (\n  process.executable like (\"/tmp/newroot/*\", \"/opt/lxc/*\", \"/var/snap/lxd/*\") or\n  process.parent.command_line == \"runc init\" or\n  process.command_line in (\"pickup -l -t unix -u\", \"pickup -l -t unix -u -c\") or\n  (\n    process.parent.executable == \"/etc/init.d/postfix\" and process.command_line == \"/bin/echo -n postfix is running\"\n  ) or\n  (\n    process.parent.executable == \"/usr/libexec/postfix/master\" and\n    process.command_line like (\n      \"/usr/bin/hostname\", \"ps -eo pid,args\", \"uname -m\", \"/usr/bin/perl -w /root/check_megaraid_sas\",\n      \"gzip /prod/prod/data/prodstage/pos/save/*\"\n    )\n  ) or\n  (\n    process.parent.executable == \"/usr/sbin/dovecot\" and\n    process.command_line like \"*/usr/local/cpanel/3rdparty/wp-toolkit/plib/vendor/wp-cli/wpt-wp-cli.php*\"\n  ) or\n  (\n    process.parent.executable in (\"/usr/sbin/sendmail\", \"/etc/init.d/sendmail\") and\n    process.name == \"touch\"\n  ) or\n  process.entry_leader.executable == \"/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent\" or\n  (process.parent.executable == \"/tmp/usr/sbin/sendmail\" and process.executable like (\"/tmp/usr/bin/*\", \"/tmp/bin/*\")) or\n  (process.parent.executable == \"/usr/share/sendmail/sendmail\" and process.name == \"touch\")\n)\n"
+  min_endpoint_version: "8.3.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1190
+          name: Exploit Public-Facing Application
+          reference: "https://attack.mitre.org/techniques/T1190/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1554
+          name: Compromise Host Software Binary
+          reference: "https://attack.mitre.org/techniques/T1554/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1210
+          name: Exploitation of Remote Services
+          reference: "https://attack.mitre.org/techniques/T1210/"
+      tactic:
+        id: TA0008
+        name: Lateral Movement
+        reference: "https://attack.mitre.org/tactics/TA0008/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1071
+          name: Application Layer Protocol
+          reference: "https://attack.mitre.org/techniques/T1071/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.3.0"

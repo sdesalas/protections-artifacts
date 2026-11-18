@@ -1,0 +1,32 @@
+id: "44fa18bd-c484-48f0-84ea-b8fd7d0586aa_1.0.6"
+type: security-rule
+attributes:
+  description: |
+    Identifies a delayed load of the Microsoft Common Language Runtime DLL CLR.dll associated with egress network
+    connections.
+  rule_id: "44fa18bd-c484-48f0-84ea-b8fd7d0586aa"
+  license: Elastic License v2
+  name: Delayed Common Language Runtime Load
+  os_list:
+    - windows
+  version: "1.0.6"
+  query: "sequence by process.entity_id with maxspan=5s \n [network where process.pid != 4 and\n   event.action in (\"disconnect_received\", \"connection_attempted\") and \n   not cidrmatch(destination.ip, \"10.0.0.0/8\", \"127.0.0.0/8\", \"169.254.0.0/16\", \"172.16.0.0/12\", \"192.0.0.0/24\",\n       \"192.0.0.0/29\", \"192.0.0.8/32\", \"192.0.0.9/32\", \"192.0.0.10/32\", \"192.0.0.170/32\", \"192.0.0.171/32\",\n       \"192.0.2.0/24\", \"192.31.196.0/24\", \"192.52.193.0/24\", \"192.88.99.0/24\", \"224.0.0.0/4\",\n       \"100.64.0.0/10\", \"192.175.48.0/24\",\"198.18.0.0/15\", \"198.51.100.0/24\", \"203.0.113.0/24\", \"240.0.0.0/4\", \"::1\",\n       \"FE80::/10\", \"FF00::/8\") and \n    not process.executable : (\"?:\\\\Program Files (x86)\\\\*.exe\", \"?:\\\\Program Files\\\\*.exe\", \"\\\\Device\\\\Mup\\\\*\") and\n     not (process.code_signature.trusted == true and\n          process.code_signature.subject_name : \n                     (\"Flexera Software LLC\", \"Dassault Systemes SolidWorks Corp.\", \"Adaptive Protocols, Inc.\", \"SAP SE\", \"HP Inc.\", \n                      \"TechSmith Corporation\", \"FactSet Research Systems Inc.\", \"Corel Corporation\", \"Amazon.com Services LLC\", \"Commvault Systems, Inc.\",\n                      \"ONELAUNCH TECHNOLOGIES INC.\", \"REFINITIV US LLC\", \"Corel Corporation\", \"Environmental Systems Research Institute, Inc.\",\n                      \"Nox Limited\", \"Therefore Corporation GmbH\", \"Autodesk, Inc.\", \"National Instruments Corporation\", \"Siemens AG\",\n                      \"The Reynolds and Reynolds Company\"))\n    ]\n [library where dll.name : (\"clr.dll\", \"mscorwks.dll\") and process.uptime >= 1 and \n  process.thread.Ext.call_stack_summary : \"ntdll.dll|*mscoreei.dll*\" and\n  not process.thread.Ext.call_stack_summary : \n                           (\"*mscoreei.dll|msi*.tmp|msi.dll*\", \n                            \"*|mscoreei.dll|mscoree.dll*\", \n                            \"*mscoreei.dll|combase.dll*\", \n                            \"*pghook.dll|mscoreei.dll|previewview.dll*\",\n                            \"*mscoreei.dll|microsoft.teams.addinloader.dll*\",\n                            \"*mscoreei.dll|vstoloader.dll*\",\n                            \"*mscoreei.dll|onelaunch*.tmp|*\",\n                            \"*mscoreei.dll|utils.dll|gencls.dll*\",\n                            \"*mscoreei.dll|revupreviewhandler.dll*\",\n                            \"*mscoreei.dll|previewview.dll*\",\n                            \"*mscoreei.dll|twuniclitsprintx64.dll|rdclientax.dll*\")]\n"
+  min_endpoint_version: "8.8.0"
+  optional_actions: []
+  reputation: true
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.8.0"

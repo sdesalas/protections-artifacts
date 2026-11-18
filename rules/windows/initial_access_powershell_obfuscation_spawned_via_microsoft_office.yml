@@ -1,0 +1,57 @@
+id: "93ef8a09-0f8d-4aa1-b0fb-47d5d5b40cf2_1.0.41"
+type: security-rule
+attributes:
+  description: |
+    Identifies a Microsoft Office application (Word, PowerPoint, Excel) starting Windows PowerShell with a suspicious
+    command line.
+  rule_id: "93ef8a09-0f8d-4aa1-b0fb-47d5d5b40cf2"
+  license: Elastic License v2
+  name: PowerShell Obfuscation Spawned via Microsoft Office
+  os_list:
+    - windows
+  reference:
+    - "https://github.com/danielbohannon/Invoke-Obfuscation"
+    - "https://www.elastic.co/security-labs/effective-parenting-detecting-lrpc-based-parent-pid-spoofing"
+  version: "1.0.41"
+  query: "process where event.action == \"start\" and\n (process.pe.original_file_name == \"PowerShell.EXE\" or process.name : (\"powershell.exe\", \"pwsh.exe\")) and\n (\n  process.parent.name : (\"excel.exe\", \"powerpnt.exe\", \"winword.exe\") or\n  (descendant of [process where event.action == \"start\" and process.name : (\"excel.exe\", \"powerpnt.exe\", \"winword.exe\")] and\n   /* Issue #263 */\n   not process.parent.executable : (\"?:\\\\Program Files\\\\*.exe\", \"?:\\\\Program Files (x86)\\\\*.exe\"))\n  ) and\n  not process.Ext.token.integrity_level_name == \"system\" and process.parent.executable != null and \n  process.command_line :\n              (\"*^*^*^*^*^*^*^*^*^*\",\n              \"*''*''*''*\",\n              \"*`*`*`*`*\",\n              \"*{*{*{*{*{*{*{*{*{*{*{*{*{*{*{*{*{*{*{*\",\n              \"*+*+*+*+*+*\",\n              \"*$*$*$*$*\",\n              \"*[char[]](*)*-join\",\n              \"*Base64String*\",\n              \"*[*Convert]*\",\n              \"*.Text.Encoding*\",\n              \"*.Compression.*\",\n              \"*.replace(*\",\n              \"*MemoryStream*\",\n              \"*WriteAllBytes*\",\n              \"* -en* *\",\n              \"* -ec *\",\n              \"* -e *\",\n              \"* -ex* *\",\n              \"* -ep *\",\n              \"* /e *\",\n              \"* /en* *\",\n              \"* /ec *\",\n              \"* /ex* *\",\n              \"* /ep *\",\n              \"*WebClient*\",\n              \"*DownloadFile*\",\n              \"*DownloadString*\",\n              \"*BitsTransfer*\",\n              \"*Invoke-Exp*\",\n              \"*invoke-web*\",\n              \"*iex*\",\n              \"*iwr*\",\n              \"*Reflection.Assembly*\",\n              \"*Assembly.GetType*\",\n              \"*.Sockets.*\",\n              \"*PromptForCredential*\",\n              \"*nslookup*-q=txt*\",\n              \"*wget*http*\") and\n  /* Issue #263 */\n  not process.parent.executable :\n                 (\"?:\\\\ProgramData\\\\CentraStage\\\\AEMAgent\\\\AEMAgent.exe\",\n                  \"?:\\\\Windows\\\\System32\\\\svchost.exe\",\n                  \"?:\\\\Windows\\\\System32\\\\CompatTelRunner.exe\",\n                  \"?:\\\\Windows\\\\System32\\\\taskeng.exe\") and\n\n  not process.args : (\"Get-AuthenticodeSignature*\", \"Write-Host\") and not process.command_line : \"*Get-AppxPackage*Microsoft.Office*\" and\n  not (process.name : \"powershell.exe\" and process.command_line : \"*Get-CIMInstance -Class Win32_Service*\" and \n       process.parent.executable : \"C:\\\\WINDOWS\\\\System32\\\\cmd.exe\" and process.parent.args : \"C:\\\\WINDOWS\\\\TEMP\\\\nessus_*.TMP\") and\n  not process.command_line : \"powershell.exe -NoProfile -NoLogo -InputFormat Text -NoExit -ExecutionPolicy Unrestricted -Command -\" and\n  not (process.name : \"powershell.exe\" and process.args : \"$ErrorActionPreference='silentlycontinue'; $tmp = (Get-Item -Path $env:PROGRAMFILES\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe).VersionInfo.FileVersion; if ($tmp) {echo $tmp; Exit;}; $tmp = (Get-Item -Path $env:PROGRAMFILES\") and\n  not (process.parent.name : \"cmd.exe\" and process.parent.args : \"chcp 65001 & powershell -NonInteractive -WindowStyle Hidden -command &\") and\n  not (process.args : \"-NoLogo\" and process.args : \"\\\\\\\\*.ps1\") and \n  not process.args : \"$bytes=[System.Text.Encoding]::UTF8.GetBytes('*');$hash=[System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes);[BitConverter]::ToString($hash).Replace('-','').ToLower()\"\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.001
+              name: PowerShell
+              reference: "https://attack.mitre.org/techniques/T1059/001/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,39 @@
+id: dd41ff35-41bf-4d22-b781-3e6a61c74e9d_1.0.23
+type: security-rule
+attributes:
+  description: |
+    Detects the modification or rename of a hidden executable file in a macOS applications support directory, which contains
+    configuration and resource data for the app. This activity is highly abnormal and could indicate a malicious application
+    or application component such as a 3rd party library.
+  rule_id: dd41ff35-41bf-4d22-b781-3e6a61c74e9d
+  license: Elastic License v2
+  name: Suspicious macOS Application Hidden Executable File
+  os_list:
+    - macos
+  reference:
+    - "https://objective-see.org/blog/blog_0x73.html"
+    - "https://attack.mitre.org/techniques/T1564/001/"
+  version: "1.0.23"
+  query: "file where event.action in (\"modification\", \"rename\") and\n file.Ext.header_bytes like~ (\"cffaedfe*\", \"cafebabe*\") and\n file.path like~ (\"/Library/Application Support/*\", \"/Users/*/Library/Application Support/*\") and \n process.executable like~ (\"/Applications/*/Contents/MacOS/*\", \"/Users/*/Applications/*/Contents/MacOS/*\") and \n file.name like~ \".*\" and\n not (\n  process.code_signature.trusted == true and\n  process.code_signature.team_id in (\"UBF8T346G9\", \"MQ55VZLNZQ\") and\n  file.path like (\n    \"/Users/*/Library/Application Support/Code - Insiders/User/globalStorage/*/bin/.*\",\n    \"/Users/*/Library/Application Support/Zed/languages/*/.tmp-*\"\n  )\n)\n"
+  min_endpoint_version: "8.8.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1564
+          name: Hide Artifacts
+          reference: "https://attack.mitre.org/techniques/T1564/"
+          subtechnique:
+            - id: T1564.001
+              name: Hidden Files and Directories
+              reference: "https://attack.mitre.org/techniques/T1564/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.8.0"

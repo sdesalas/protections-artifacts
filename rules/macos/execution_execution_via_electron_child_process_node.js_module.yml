@@ -1,0 +1,52 @@
+id: "1d43f87d-2466-4714-8fef-d52816cc25fb_1.0.37"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to execute a child process from within the context of an Electron application using the
+    child_process Node.js module. Adversaries may abuse this technique to inherit permissions from parent processes.
+  rule_id: "1d43f87d-2466-4714-8fef-d52816cc25fb"
+  license: Elastic License v2
+  name: Execution via Electron Child Process Node.js Module
+  os_list:
+    - macos
+  reference:
+    - "https://www.matthewslipper.com/2019/09/22/everything-you-wanted-electron-child-process.html"
+    - "https://www.trustedsec.com/blog/macos-injection-via-third-party-frameworks/"
+    - "https://nodejs.org/api/child_process.html"
+  version: "1.0.37"
+  query: "process where event.action == \"exec\" and\n process.args == \"-e\" and process.command_line like~ \"*require*child_process*\" and\n process.command_line like~ \"*spawn*\" and\n (\n   /* Spawning shells with inline commands */\n   process.command_line like~ (\"*spawn*bash*-c*\", \"*spawn*sh*-c*\", \"*spawn*zsh*-c*\") or\n   /* Spawning curl/wget for download */\n   process.command_line like~ (\"*spawn*curl*\", \"*spawn*wget*\") or\n   /* Spawning osascript */\n   process.command_line like~ \"*spawn*osascript*\" or\n   /* Spawning python with inline code */\n   process.command_line like~ \"*spawn*python*-c*\" or\n   /* Base64 decode patterns */\n   process.command_line like~ \"*spawn*base64*\" or\n   /* Execution from suspicious staging paths */\n   process.command_line like~ (\"*spawn*/tmp/*\", \"*spawn*/Users/Shared/*\", \"*spawn*/private/tmp/*\", \"*spawn*/var/tmp/*\")\n ) and\n not process.executable like\n             (\"/usr/bin/grep\",\n              \"/Applications/Docker.app/Contents/Resources/bin/docker\",\n              \"/Applications/Docker.app/Contents/Resources/bin/com.docker.cli\") and\n not process.Ext.effective_parent.executable like \n    (\"/Users/*/Library/Application Support/Claude/claude-code/*/claude.app/Contents/MacOS/claude\",\n      \"/Applications/ChatGPT.app/Contents/MacOS/ChatGPT\",\n      \"/Applications/Orca.app/Contents/MacOS/Orca\")\n"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.015
+              name: Electron Applications
+              reference: "https://attack.mitre.org/techniques/T1218/015/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.2"

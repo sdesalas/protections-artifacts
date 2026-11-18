@@ -1,0 +1,39 @@
+id: "7a06d6d6-45e7-4ec2-a39e-bfd6b5d9157a_1.0.4"
+type: security-rule
+attributes:
+  description: |
+    Detects the deletion of user session files on Linux systems. These files are used to store user session information.
+    Unauthorized deletion of these files can be an indicator of an attacker attempting to hide their session from common
+    tooling such as "w".
+  rule_id: "7a06d6d6-45e7-4ec2-a39e-bfd6b5d9157a"
+  license: Elastic License v2
+  name: User Session File Deletion
+  os_list:
+    - linux
+  version: "1.0.4"
+  query: "file where event.type == \"deletion\" and file.path like (\"/run/systemd/sessions/*\", \"/var/run/systemd/sessions/*\") and\nprocess.executable != null and\nnot (\n  process.executable in (\n    \"/usr/lib/systemd/systemd-logind\", \"/usr/lib/systemd/systemd-logind (deleted)\", \"/usr/libexec/elogind/elogind\", \n    \"/lib/systemd/systemd-logind\", \"/lib/systemd/systemd-logind (deleted)\", \"/lib/systemd/systemd\",\n    \"/usr/lib/systemd/systemd\", \"/sbin/ebtables-restore\", \"/usr/sbin/nft\", \"/usr/bin/systemctl\", \"/bin/lxc-info\",\n    \"/usr/bin/dpkg\", \"/usr/bin/smbclient\", \"/usr/bin/gpg-agent\", \"/sbin/vgs\", \"/usr/sbin/ebtables\", \"/usr/bin/gpgconf\",\n    \"/usr/lib/elogind/elogind\", \"/usr/lib/elogind/elogind (deleted)\"\n  ) or\n  process.executable like (\n    \"/nix/store/*/lib/systemd/systemd-logind\", \"/usr/lib/systemd/systemd-logind*\",\n    \"/var/lib/containers/storage/overlay/*/merged/usr/lib/systemd/systemd-logind\",\n    \"/zpool/*/usr/lib/systemd/systemd-logind (deleted)\", \"/zpool/*/usr/lib/systemd/systemd-logind\"\n  )\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1070
+          name: Indicator Removal
+          reference: "https://attack.mitre.org/techniques/T1070/"
+          subtechnique:
+            - id: T1070.004
+              name: File Deletion
+              reference: "https://attack.mitre.org/techniques/T1070/004/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

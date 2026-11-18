@@ -1,0 +1,37 @@
+id: c6cfc1e1-2198-4f72-a2df-cd4e13f3e1ca_1.0.6
+type: security-rule
+attributes:
+  description: Detects library load from a potentially altered call stack in order to conceal the true source of the call.
+  rule_id: c6cfc1e1-2198-4f72-a2df-cd4e13f3e1ca
+  license: Elastic License v2
+  name: Library Loaded from a Spoofed Call Stack
+  os_list:
+    - windows
+  reference:
+    - "https://www.zscaler.com/blogs/security-research/dodgebox-deep-dive-updated-arsenal-apt41-part-1"
+  version: "1.0.6"
+  query: "library where\n  dll.name : (\"wininet.dll\", \"ws2_32.dll\", \"winhttp.dll\", \"netapi32.dll\", \"wmiutils.dll\", \"wtsapi32.dll\", \"psapi.dll\") and\n  (\n   process.thread.Ext.call_stack_summary == \"ntdll.dll|kernelbase.dll|kernel32.dll|ntdll.dll\" or \n   \n   (process.thread.Ext.call_stack_summary == \"ntdll.dll|kernel32.dll|ntdll.dll\" and \n    _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: \"*ntdll.dll!TpReleaseWait*\") and\n    _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: \"*ntdll.dll!RtlInitializeResource*\") and \n    not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: \"*ntdll.dll!LdrUnloadDl*\"))\n   ) and\n  _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: \"*\\\\ntdll.dll!LdrLoadDll*\") and\n  not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: (\"*\\\\KernelBase.dll!LoadLibrary*\", \"*\\\\kernel32.dll!LoadLibrary*\")) and\n  not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: (\"*\\\\KernelBase.dll+0x*\", \"*\\\\kernel32.dll+0x*\"))\n"
+  min_endpoint_version: "8.10.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

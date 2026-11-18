@@ -1,0 +1,43 @@
+id: "87def154-004d-4d3a-8224-591e41804454_1.0.22"
+type: security-rule
+attributes:
+  description: |
+    Detects the suspicious execution of a shell script from a volume mount path and outside of the standard macOS binary
+    execution path (/Volumes/name.app/Contents/MacOS/binary). This activity is highly abnormal and should indicate
+    potentially malicious activity. Threat actors have used shell scripts like this in order to download additional
+    tools/payloads and prepare the system for post-infection actions by establishing persistence, altering file attributes
+    and creating necessary directories.
+  rule_id: "87def154-004d-4d3a-8224-591e41804454"
+  license: Elastic License v2
+  name: Shell Script Execution from abnormal Volume Mount Path
+  os_list:
+    - macos
+  reference:
+    - "https://objective-see.org/blog/blog_0x71.html"
+  version: "1.0.22"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and \nprocess.name like~ (\"bash\", \"sh\", \"zsh\", \"tclsh*\") and\nprocess.args like~ \"/Volumes/*/Contents/*\" and \nprocess.args_count <= 3 and\nprocess.parent.executable like~ \"/Volumes/*\" and not \nprocess.args like~ (\"/Volumes/*/Contents/MacOS/*\", \"/Volumes/*/Contents/Eclipse/*\") and not\nprocess.Ext.effective_parent.executable like~ \"/Volumes/*\"\n"
+  min_endpoint_version: "8.5.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.5.0"

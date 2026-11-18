@@ -1,0 +1,35 @@
+id: c3758f2c-66d5-4cbe-820f-1c6207c6e341_1.0.22
+type: security-rule
+attributes:
+  description: |
+    Identifies the load of a library that was recently copied and with a unusual memory allocation properties. This may be
+    the result of a code injection using module stomping or DLL hollowing via overwriting the content of legit DLL with
+    malicious code.
+  rule_id: c3758f2c-66d5-4cbe-820f-1c6207c6e341
+  license: Elastic License v2
+  name: Module Stomping from a Copied Library
+  os_list:
+    - windows
+  version: "1.0.22"
+  query: "sequence by user.id with maxspan=3m\n\n[file where event.action != \"deletion\" and\n not user.id : (\"S-1-5-18\", \"S-1-5-19\", \"S-1-5-20\") and\n\n  /* PE file dropped via CopyFile API calls  */\n  file.Ext.header_bytes : \"4d5a*\" and\n _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info: (\"*CopyFileEx*\", \"*MoveFileExW*\")) and\n\n not process.executable : (\"?:\\\\Program Files (x86)\\\\Citrix\\\\ICA Client\\\\concentr.exe\",  \n                           \"?:\\\\Program Files (x86)\\\\InstallShield Installation Information\\\\*\\\\setup.exe\") and\n not file.path : (\"?:\\\\Program Files (x86)\\\\Web Components\\\\NetStream.dll\", \"C:\\\\WINDOWS\\\\system32\\\\myah0.cpl\")] as event0\n\n[library where\n\n  /* common networing and recon system modules */\n  dll.name : (\"ws2_32.dll\", \"dnsapi.dll\", \"wininet.dll\", \"psapi.dll\", \"vaultcli.dll\") and\n\n  /* stack starts from the recently dropped PE */\n  endswith~(process.thread.Ext.call_stack_summary, event0.file.name) and\n\n  /* Process name is different from the dropped PE */\n  process.name != event0.file.name and\n\n  /* Abnormal private bytes allocation for the dropped PE when loaded in memory */\n _arraysearch(process.thread.Ext.call_stack, $entry,\n              $entry.allocation_private_bytes >= 100000 and startswith~($entry.symbol_info, event0.file.path))]\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.7.0"

@@ -1,0 +1,36 @@
+id: a0265178-779d-4bc5-b3f1-abb3bcddedab_1.0.35
+type: security-rule
+attributes:
+  description: |
+    Identifies a privilege escalation attempt via named pipe impersonation. An adversary may abuse this technique by
+    utilizing a framework like Metasploit's getsystem command.
+  rule_id: a0265178-779d-4bc5-b3f1-abb3bcddedab
+  license: Elastic License v2
+  name: Privilege Escalation via Named Pipe Impersonation
+  os_list:
+    - windows
+  reference:
+    - "https://www.ired.team/offensive-security/privilege-escalation/windows-namedpipes-privilege-escalation"
+  version: "1.0.35"
+  query: "process where event.action == \"start\" and\n   (process.name in~ (\"cmd.exe\", \"powershell.exe\", \"sc.exe\", \"schtasks.exe\") or \n    process.pe.original_file_name in (\"Cmd.Exe\", \"PowerShell.EXE\",  \"sc.exe\", \"schtasks.exe\")) and \n   process.command_line : \"*echo*>*\\\\\\\\.\\\\pipe\\\\*\" and\n   not process.parent.executable like \n           (\"?:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\",\n            \"?:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\",\n            \"?:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\")\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1134
+          name: Access Token Manipulation
+          reference: "https://attack.mitre.org/techniques/T1134/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "7.15.0"

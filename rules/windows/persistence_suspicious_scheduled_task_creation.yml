@@ -1,0 +1,40 @@
+id: beebd95c-93f4-46d2-a902-053bfe78686b_1.0.34
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a scheduled task with suspicious argument such as task path or parent process. This behavior
+    is consistent with an adversary attempting to establish persistence.
+  rule_id: beebd95c-93f4-46d2-a902-053bfe78686b
+  license: Elastic License v2
+  name: Suspicious Scheduled Task Creation
+  os_list:
+    - windows
+  reference:
+    - "https://docs.microsoft.com/en-us/windows/win32/taskschd"
+  version: "1.0.34"
+  query: "process where event.action == \"start\" and\n  process.pe.original_file_name : \"schtasks.exe\" and\n  not process.Ext.token.integrity_level_name == \"system\" and\n  process.args : (\"/create\", \"-create\") and process.args : \"/tr\" and\n  not process.command_line : (\"*:\\\\Program Files\\\\*\", \"*:\\\\Program Files (x86)\\\\*\") and\n  not process.Ext.token.integrity_level_name == \"system\" and\n  (\n   process.args : (\"*Users\\\\Public\\\\*\", \"*:\\\\Windows\\\\Tasks\\\\*\", \"*:\\\\Windows\\\\system32\\\\Tasks\\\\*\") or \n   \n   (process.args : \"minute\" and process.args : \"/mo\" and\n    process.args : (\"*\\\\AppData\\\\*\", \"*\\\\ProgramData\\\\*\", \"*Users\\\\Public\\\\*\")) or\n\n   (process.args : \"HIGHEST\" and process.args : \"ONLOGON\" and\n    process.parent.name : (\"wmiprvse.exe\", \"rundll32.exe\", \"regsvr32.exe\") and\n    not process.parent.command_line : \"*rundll32*zzzzInvokeManagedCustomActionOutOfProc*\") or\n\n   (process.args : (\"onlogon\", \"minute\", \"onstart\", \"daily\", \"once\") and\n    process.parent.name : \"cmd.exe\" and process.parent.command_line : \"*schtasks*\" and\n    descendant of [process where event.action == \"start\" and not process.code_signature.trusted == true]) or\n\n   (process.args : (\"SYSTEM\", \"NT AUTHORITY\\\\SYSTEM\") and process.args : \"/ru\" and\n    process.command_line : (\"*vssadmin*Delete*Shadows*\", \"*wmic*shadowcopy*\", \"*regsvr32*-s*\")) or \n    \n   process.command_line : (\"*comspec*\", \"*cmd.exe*/c*\", \"*^*^*^*\", \"*powershell*\", \"*http*://*\", \"*mshta*\", \"* curl.exe*\")\n  ) and \n  \n  not process.command_line : (\"*\\\\bmx\\\\* shutdown.exe *\", \"*powershell.exe*Task*rubrik_vmware*\") and\n  not (process.parent.args : \"C:\\\\ProgramData\\\\Prognos_Scripts\\\\OneDriveMapper\\\\OneDriveMapper.ps1\" and process.command_line : \"*powershell*\") and\n  not process.args :  (\"'C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe' -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File C:\\\\Windows\\\\TEMP\\\\rubrik_vmware*\\\\post-restore.ps1 \",\n                       \"'C:\\\\ProWin22\\\\32bit\\\\ProSeriesBackgroundUpdater.exe' -p 'C:\\\\ProWin22' -y 22 -s Core\", \n                       \"C:\\\\ModentoBridge\\\\ModentoPowershellProxy\\\\schedulePSP.bat\", \n                       \"C:\\\\ModentoBridge\\\\ModentoPowershellProxy\\\\startProxy.bat\", \n                       \"C:\\\\ModentoBridge_1\\\\ModentoPowershellProxy\\\\startProxy.bat\", \n                       \"C:\\\\PROGRA~2\\\\*\\\\EXAQUA~1\\\\DEVELO~1\\\\EQPERF~1\\\\Config\\\\EQPERF~1.BAT\",\n                       \"c:\\\\dona_adm\\\\admin\\\\*.exe\") and\n  not (process.parent.name : \"powershell.exe\" and process.args : \"Rubrik Post Restore Task\") and\n  not process.command_line : \"*\\\\ProgramData\\\\Atos\\\\custom-scanner\\\\scan_sox.cmd*\" and\n  not (process.parent.name : \"wsmprovhost.exe\" and process.command_line : \"*TempGPUpdate*\" and process.command_line : \"*gpupdate*\") and\n  not (process.args : \"& \\\"\\\\\\\\*\" and process.args : \"powershell\") and \n  not (process.parent.name : \"cmd.exe\" and (process.parent.args :  \"\\\\\\\\*\" or process.parent.command_line : \"\\\"C:\\\\WINDOWS\\\\system32\\\\cmd.exe\\\"\"))\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1053
+          name: Scheduled Task/Job
+          reference: "https://attack.mitre.org/techniques/T1053/"
+          subtechnique:
+            - id: T1053.005
+              name: Scheduled Task
+              reference: "https://attack.mitre.org/techniques/T1053/005/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "7.15.0"

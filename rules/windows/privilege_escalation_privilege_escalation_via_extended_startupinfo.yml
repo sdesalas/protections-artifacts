@@ -1,0 +1,43 @@
+id: "2afd9e7f-99e0-4a4d-a6e3-9e9db730f63b_1.0.44"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of an elevated process running as SYSTEM and with a spoofed parent process. Adversaries use this
+    technique to escalate privileges and bypass access controls.
+  rule_id: "2afd9e7f-99e0-4a4d-a6e3-9e9db730f63b"
+  license: Elastic License v2
+  name: Privilege Escalation via EXTENDED STARTUPINFO
+  os_list:
+    - windows
+  reference:
+    - "https://gist.github.com/xpn/a057a26ec81e736518ee50848b9c2cd6"
+    - "https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1134.002/T1134.002.md"
+    - "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute"
+    - "https://www.elastic.co/security-labs/elastic-security-labs-steps-through-the-r77-rootkit"
+  version: "1.0.44"
+  query: "process where event.action == \"start\" and\n\n /* process creation via seclogon */\n process.parent.Ext.real.pid > 0 and process.parent.executable != null and\n\n /* PrivEsc to SYSTEM */\n user.id == \"S-1-5-18\"  and\n\n /* Common FPs - evasion via hollowing is possible, should be covered by code injection */\n not process.executable : (\"?:\\\\Windows\\\\System32\\\\WerFault.exe\",\n                           \"?:\\\\Windows\\\\SysWOW64\\\\WerFault.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\WerFaultSecure.exe\",\n                           \"?:\\\\Windows\\\\SysWOW64\\\\WerFaultSecure.exe\",\n                           \"\\\\\\\\?\\\\Volume{*}\\\\Windows\\\\Sys*\\\\WerFault.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\Wermgr.exe\",\n                           \"?:\\\\Windows\\\\SysWOW64\\\\Wermgr.exe\",\n                           \"?:\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\securityhealthsetup.exe\",\n                           \"?:\\\\Program Files\\\\*.exe\",\n                           \"?:\\\\Program Files (x86)\\\\*.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\osk.exe\",\n                           \"?:\\\\Windows\\\\System32\\\\Narrator.exe\", \n                           \"?:\\\\Windows\\\\System32\\\\MpSigStub.exe\",\n                           \"\\\\Device\\\\HarddiskVolume?\\\\Windows\\\\SysWOW64\\\\*.exe\",\n                           \"\\\\Device\\\\HarddiskVolume?\\\\Windows\\\\System32\\\\*.exe\") and\n\n not process.parent.executable : (\"?:\\\\Windows\\\\System32\\\\AtBroker.exe\", \"?:\\\\Windows\\\\System32\\\\Utilman.exe\") and\n\n not (process.pe.original_file_name == \"SecurityHealthSetup.exe\" and process.code_signature.trusted == true and\n      process.code_signature.subject_name == \"Microsoft Windows\" and process.Ext.effective_parent.executable : \"C:\\\\Windows\\\\servicing\\\\TrustedInstaller.exe\") and\n\n not (process.code_signature.subject_name in\n           (\"philandro Software GmbH\", \"Freedom Scientific Inc.\", \"TeamViewer Germany GmbH\", \"Projector.is, Inc.\",\n            \"TeamViewer GmbH\", \"Cisco WebEx LLC\", \"Dell Inc\", \"Netwrix Corporation\",\n            \"Samsung Electronics CO., LTD.\", \"TeamViewer\", \"POINT B LTD\", \"IMPERO SOLUTIONS LIMITED\",\n            \"AnyDesk Software GmbH\", \"Shanghai Best Oray Information S&T Co. Ltd.\", \"Zhou Huabing\",\n            \"PURSLANE\", \"Remote Utilities LLC\", \"ZOHO Corporation Private Limited\", \"PTC Inc.\", \"ITE Tech. Inc.\",\n            \"vast limits GmbH\", \"RG Systèmes SAS\", \"Bayside Computer Systems Inc\") and\n       process.code_signature.trusted == true) and\n\n not (process.name : \"powershell.exe\" and process.parent.name : \"powershell.exe\" and\n      process.args : \"CgAgACAAIAAg*\" and process.parent.args : \"JgBjAGgAYwBwAC4AYwBvAG0AIAA2ADUAMAAwADEAIAA+ACAA*\") and \n      \n not process.hash.sha256 :\n             (\"3e541100c869dba06ee62252a9661e5a06c2e685a7ddd5288ea1358703412385\",\n              \"29c977845e4822efe15cc0e44ede3a03e30030d108d2ae9932e34a1c3840283a\",\n              \"1e07a7a91451303d5cdac0a1673d581f5f7198fcc08fc79e4332aba6400f55a8\",\n              \"f3607f433952cb23d9eb0fc5e31fd0c4079cad3133dc79d149022900d208876c\",\n              \"79e1e068196a7447eb7ec8b4fc2d8ba4e818ad4d94829c0151170e639f480b9e\") and\n \n not (process.name : \"rundll32.exe\" and process.command_line : \"*winethc*ForceProxyDetectionOnNextRun*\" and \n      process.parent.args : \"WdiServiceHost\" and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\") and \n not (process.executable : \"?:\\\\Windows\\\\System32\\\\browser_broker.exe\" and \n      process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and process.parent.args : \"PlugPlay\") and \n not (process.name : \"cmd.exe\" and \n      process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and process.parent.args : \"DcomLaunch\" and \n      process.args : \"?:\\\\Windows\\\\System32\\\\wscript.exe ?:\\\\windows\\\\system32\\\\gathernetworkinfo.vbs\") and \n not (process.parent.executable : \"?:\\\\Program Files (x86)\\\\SubPrint\\\\subprint_temp\\\\nircmdc.exe\" and \n      process.name : \"cmd.exe\" and process.args : \"?:\\\\Program Files (x86)\\\\SubPrint/subprint_temp/configure.bat\") and\n not process.parent.executable : \"?:\\\\Program Files (x86)\\\\VisualCron\\\\VisualCronService.exe\" and\n not (process.name : \"powershell.exe\" and process.parent.executable : \"C:\\\\Windows\\\\System32\\\\wsmprovhost.exe\" and\n      process.command_line : \"powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -EncodedCommand CgA*\") and\n not (process.parent.name : \"cmd.exe\" and process.name : \"powershell.exe\" and process.args : \"$execWrapper.Split(@(\\\"`0`0`0`0\\\"),\") and\n not (process.executable : \"?:\\\\WINDOWS\\\\SysWOW64\\\\svchost.exe\" and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and \n      process.parent.command_line : \"?:\\\\WINDOWS\\\\system32\\\\svchost.exe -k DcomLaunch -p -s PlugPlay\") and  \n not (process.executable : \"?:\\\\$WINDOWS.~BT\\\\NewOS\\\\Windows\\\\System32\\\\ie4ushowIE.exe\" and \n      process.parent.executable : \"?:\\\\$WINDOWS.~BT\\\\Sources\\\\mighost.exe\") and\n\n not process.parent.executable :\n                      (\"C:\\\\Program Files\\\\Veeam\\\\Backup and Replication\\\\Backup\\\\Veeam.Backup.Manager.exe\",\n                       \"\\\\Device\\\\HarddiskVolume?\\\\Windows\\\\SoftwareDistribution\\\\Download\\\\Install\\\\SecurityHealthSetup.exe\") and\n\n /* AM_Delta_Patch Windows Update */\n not (process.executable :\n                 (\"?:\\\\Windows\\\\System32\\\\MpSigStub.exe\",\n                  \"?:\\\\Windows\\\\SysWOW64\\\\MpSigStub.exe\",\n                  \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\System32\\\\MpSigStub.exe\",\n                  \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\SysWOW64\\\\MpSigStub.exe\") and\n      process.parent.name : (\"wuauclt.exe\", \"wuaucltcore.exe\")) and\n\n not (process.executable : \"C:\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\Scans\\\\MpPayloadData\\\\mpengine.exe\" and\n      process.parent.executable : \"C:\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\Scans\\\\MpPayloadData\\\\mpengine.exe\" and user.id == \"S-1-5-18\")\n"
+  min_endpoint_version: "8.4.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1134
+          name: Access Token Manipulation
+          reference: "https://attack.mitre.org/techniques/T1134/"
+          subtechnique:
+            - id: T1134.002
+              name: Create Process with Token
+              reference: "https://attack.mitre.org/techniques/T1134/002/"
+            - id: T1134.004
+              name: Parent PID Spoofing
+              reference: "https://attack.mitre.org/techniques/T1134/004/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.4.0"

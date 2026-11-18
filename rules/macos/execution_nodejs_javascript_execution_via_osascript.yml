@@ -1,0 +1,42 @@
+id: "177d5e00-0fb0-4469-9f7d-4f145e31f7cc_1.0.4"
+type: security-rule
+attributes:
+  description: |
+    Detects when Node.js spawns osascript to execute a JavaScript payload. This technique has been seen being used in npm
+    typosquatting attacks to deploy credential harvesters that steal sensitive information from user systems. Attackers
+    abuse the osascript utility to execute malicious JavaScript code that maintains persistence and executes additional
+    malicious payloads.
+  rule_id: "177d5e00-0fb0-4469-9f7d-4f145e31f7cc"
+  license: Elastic License v2
+  name: Nodejs Javascript Execution via Osascript
+  os_list:
+    - macos
+  reference:
+    - "https://socket.dev/blog/10-npm-typosquatted-packages-deploy-credential-harvester"
+  version: "1.0.4"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.name == \"osascript\" and \n process.args == \"-e\" and process.command_line : \"*/Users/*.js*\" and process.parent.name == \"node\" and\n not process.Ext.effective_parent.executable like (\n   \"/Users/*/Library/Application Support/Claude/claude-code/*/claude.app/Contents/MacOS/claude\",\n   \"/Applications/ChatGPT.app/Contents/MacOS/ChatGPT\",\n   \"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node\")\n"
+  min_endpoint_version: "8.11.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.11.0"

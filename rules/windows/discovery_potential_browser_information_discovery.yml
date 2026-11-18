@@ -1,0 +1,36 @@
+id: b66bbe30-dd0a-4c79-ade4-2700930f8c09_1.0.14
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to access browser history and bookmarks files. Adversaries may enumerate information about browsers
+    to learn more about compromised environments.
+  rule_id: b66bbe30-dd0a-4c79-ade4-2700930f8c09
+  license: Elastic License v2
+  name: Potential Browser Information Discovery
+  os_list:
+    - windows
+  reference:
+    - "https://attack.mitre.org/techniques/T1217/"
+  version: "1.0.14"
+  query: "file where event.action == \"open\" and \nprocess.executable != null and not user.id in (\"S-1-5-18\", \"S-1-5-19\", \"S-1-5-20\") and process.pid != 4 and\n file.path :\n     (\"?:\\\\users\\\\*\\\\AppData\\\\Local\\\\Google\\\\Chrome\\\\User Data\\\\Default\\\\History\",\n      \"?:\\\\users\\\\*\\\\AppData\\\\Local\\\\Google\\\\Chrome\\\\User Data\\\\Default\\\\Bookmarks\",\n      \"?:\\\\users\\\\*\\\\appdata\\\\local\\\\microsoft\\\\edge\\\\user data\\\\default\\\\History\",\n      \"?:\\\\users\\\\*\\\\appdata\\\\local\\\\microsoft\\\\edge\\\\user data\\\\default\\\\Bookmarks\",\n      \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\Mozilla\\\\Firefox\\\\Profiles\\\\*.default*\\\\places.sqlite\",\n      \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\Mozilla\\\\Firefox\\\\Profiles\\\\*.default*\\\\formhistory.sqlite\") and\n process.thread.Ext.call_stack_summary : \"?*\" and\n (\n  (process.code_signature.trusted == false and not process.code_signature.status : (\"errorExpired\", \"errorCode_endpoint*\")) or\n  process.code_signature.exists == false or\n  (process.code_signature.subject_name : \"Microsoft*\" and process.thread.Ext.call_stack_contains_unbacked == true and not process.name : \"powershell.exe\") or\n  process.executable :\n                (\"?:\\\\Users\\\\Public\\\\*\",\n                 \"?:\\\\Users\\\\*\\\\Downloads\\\\*\",\n                 \"?:\\\\Windows\\\\Temp\\\\*\",\n                 \"?:\\\\Windows\\\\Tasks\\\\*\",\n                 \"?:\\\\ProgramData\\\\*\",\n                 \"?:\\\\Windows\\\\Microsoft.NET\\\\*\")\n ) and\n not (process.code_signature.subject_name : (\"Google LLC\", \"Mozilla Corporation\", \"BrowserWorks Ltd\", \"SAP SE\", \"Time Doctor LLC\", \"TimeDoctor (Mystaff.com LLC)\", \"Emsisoft Ltd\", \"PIRIFORM SOFTWARE LIMITED\") and\n      process.code_signature.trusted == true) and\n not (process.code_signature.subject_name : \"Shift Technologies Inc.\" and process.code_signature.status : \"errorUntrustedRoot\") and \n not process.executable :\n                  (\"?:\\\\Program Files (x86)\\\\*.exe\",\n                   \"?:\\\\Program Files\\\\*.exe\",\n                   \"?:\\\\Windows\\\\System32\\\\svchost.exe\",\n                   \"?:\\\\Windows\\\\BitLockerDiscoveryVolumeContents\\\\BitLockerToGo.exe\",\n                   \"?:\\\\Users\\\\*\\\\User Data\\\\Default\\\\mozilla_downloads.exe\",\n                   \"?:\\\\Users\\\\*\\\\User Data\\\\Default\\\\chrome_downloads.exe\",\n                   \"?:\\\\Users\\\\*\\\\User Data\\\\Default\\\\msedge_downloads.exe\",\n                   \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Chromium\\\\Application\\\\chrome.exe\",\n                   \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Thorium\\\\Application\\\\thorium.exe\") and\n not (process.executable : \"C:\\\\Windows\\\\Temp\\\\RarSFX*\\\\scanstate.exe\" and\n      process.thread.Ext.call_stack_summary == \"ntdll.dll|sophosed.dll|apphelp.dll|kernelbase.dll|migcore.dll|migstore.dll|migcore.dll|scanstate.exe|kernel32.dll|ntdll.dll\") and\n not (process.executable : \"C:\\\\Windows\\\\explorer.exe\" and\n      process.thread.Ext.call_stack_summary : \"ntdll.dll|kernelbase.dll|hostshellextension.dll|Unbacked\") and\n not (process.code_signature.subject_name like \"Microsoft*\" and process.code_signature.trusted == true and\n      process.thread.Ext.call_stack_summary like (\"ntdll.dll|bdhkm64.dll|Unbacked|*\", \"ntdll.dll|mssense.dll|kernel32.dll|ntdll.dll\")) and\n not _arraysearch(process.thread.Ext.call_stack, $entry,\n                     $entry.symbol_info : (\"*\\\\chrome.dll!GetHandleVerifier*\",\n                                           \"*\\\\chrome.dll!ChromeMain*\",\n                                           \"*\\\\nw.dll!sqlite3_dbdata_init*\",\n                                           \"*\\\\nw.dll!GetHandleVerifier*\",\n                                           \"*\\\\BrowserSettings.dll!SetEdgeAsDefaultBrowserOnWin8Beyond*\",\n                                           \"*\\\\chrome.dll!IsSandboxedProcess*\",\n                                           \"*BrowserSettings.dll!SetEdgeAsDefaultBrowserOnWin*\"))\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1217
+          name: Browser Information Discovery
+          reference: "https://attack.mitre.org/techniques/T1217/"
+      tactic:
+        id: TA0007
+        name: Discovery
+        reference: "https://attack.mitre.org/tactics/TA0007/"
+  internal:
+    min_endpoint_version: "8.7.0"

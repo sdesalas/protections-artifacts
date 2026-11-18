@@ -1,0 +1,40 @@
+id: "586bf106-b208-45fc-9401-727664175ca0_1.0.31"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to modify the permissions or write to Microsoft Anti Malware Scan Interface or Windows Lock Down
+    Policy related DLLs from memory. This may indicate an attempt to tamper with certain Windows native protections.
+  rule_id: "586bf106-b208-45fc-9401-727664175ca0"
+  license: Elastic License v2
+  name: AMSI or WLDP Bypass via Memory Patching
+  os_list:
+    - windows
+  reference:
+    - "https://learn.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal"
+    - "https://github.com/S3cur3Th1sSh1t/Amsi-Bypass-Powershell/blob/master/README.md#Patch-the-providers-DLL-of-Microsoft-MpOav.dll"
+    - "https://www.mdsec.co.uk/2018/06/exploring-powershell-amsi-and-logging-evasion/"
+    - "https://www.elastic.co/security-labs/doubling-down-etw-callstacks"
+  version: "1.0.31"
+  query: "api where\n\n ((process.Ext.api.name in (\"VirtualProtect\", \"VirtualProtectEx\") and process.Ext.api.parameters.protection like \"?W*\") or\n  process.Ext.api.name == \"WriteProcessMemory\") and\n\n process.Ext.api.summary : (\"* amsi.dll*\", \"* mpoav.dll*\", \"* wldp.dll*\") and \n process.executable != null and process.parent.executable != null and process.thread.Ext.call_stack_summary : \"?*\" and\n not process.thread.Ext.call_stack_final_user_module.name in (\"Kernel\", \"Unknown\") and\n (\n  process.thread.Ext.call_stack_summary like\n                    (\"ntdll.dll|kernelbase.dll|Unbacked\",\n                     \"ntdll.dll|kernelbase.dll|Unknown\",\n                     \"ntdll.dll|kernelbase.dll|kernel32.dll|Unbacked\",\n                     \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked\",\n                     \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked|kernel32.dll|ntdll.dll\", \n                     \"ntdll.dll|kernelbase.dll|*|_ctypes.pyd|python*.dll|Unknown|kernel32.dll|ntdll.dll\",\n                     \"ntdll.dll|*|vbe?.dll|*\",\n                     \"ntdll.dll|Unknown\") or\n\n  endswith~(process.thread.Ext.call_stack_summary, concat(\"ntdll.dll|kernelbase.dll|Unbacked|\", process.name)) or\n\n  endswith~(process.thread.Ext.call_stack_summary, concat(concat(\"ntdll.dll|kernelbase.dll|Unbacked|\", process.name), \"|kernel32.dll|ntdll.dll\"))\n ) and\n not (process.code_signature.subject_name in\n              (\"TPZ SOLUCOES DIGITAIS LTDA\", \"NedGraphics Software B.V.\", \"Gerber Technology LLC\", \"Rocscience Inc.\", \n               \"Wilcom International Pty Limited\", \"Code Systems Corporation\", \"Wilcom Pty Ltd\", \"Galooli Ltd\",\n               \"MECH-MIND ROBOTICS TECHNOLOGIES LTD.\", \"COJALI SL\") and\n      process.code_signature.trusted == true) and\n not process.parent.executable : \"?:\\\\Program Files\\\\PC SOFT\\\\WINDEV*\\\\Programmes\\\\windev64local.exe\" and \n not process.executable : (\"?:\\\\Program Files\\\\GRAPHISOFT\\\\ArchiCAD ??\\\\ArchiCAD.exe\", \n                           \"?:\\\\Program Files\\\\nQueue\\\\iAPrintManager\\\\iAPrintManager.exe\", \n                           \"?:\\\\Program Files\\\\PC SOFT\\\\WINDEV*\\\\Programmes\\\\windev64local.exe\", \n                           \"?:\\\\Program Files\\\\PC SOFT\\\\WINDEV*\\\\Programmes\\\\windev64local.exe\",\n                           \"?:\\\\Program Files\\\\Sophos\\\\Endpoint Defense\\\\SSPService.exe\") and\n not _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry, $entry.subject_name in (\"Bitdefender SRL\", \"Parallels International GmbH\") and $entry.status == \"trusted\") and\n not process.thread.Ext.call_stack_final_user_module.path like\n                                                            (\"c:\\\\windows\\\\sys?????\\\\apphelp.dll\",\n                                                             \"c:\\\\windows\\\\syswow64\\\\esensordbi.dll\",\n                                                             \"c:\\\\program files\\\\bitdefender\\\\endpoint security\\\\bdhkm\\\\*\\\\bdhkm64.dll\",\n                                                             \"c:\\\\program files (x86)\\\\internet explorer\\\\ieshims.dll\") and\n not _arraysearch(process.thread.Ext.call_stack, $entry, $entry.symbol_info like (\"c:\\\\windows\\\\sys?????\\\\ntdll.dll!LdrLoadDll*\", \"c:\\\\windows\\\\sys?????\\\\kernelbase.dll!LoadLibrary*\"))\n"
+  min_endpoint_version: "8.10.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

@@ -1,0 +1,31 @@
+id: "336ada1c-69f8-46e8-bdd2-790c85429696_1.0.36"
+type: security-rule
+attributes:
+  description: |
+    Identifies downloads of remote content using Windows CURL executable. This tactic may be indicative of malicious
+    activity where malware is downloading second stage payloads using built-in Windows programs.
+  rule_id: "336ada1c-69f8-46e8-bdd2-790c85429696"
+  license: Elastic License v2
+  name: Ingress Tool Transfer via CURL
+  os_list:
+    - windows
+  version: "1.0.36"
+  query: "process where event.action == \"start\" and\n\n /* renamed curl or curl running from normal users writable folders are very noisy */\n process.executable : (\"?:\\\\Windows\\\\System32\\\\curl.exe\", \"?:\\\\Windows\\\\SysWOW64\\\\curl.exe\") and process.args_count <= 5 and \n\n (\n  (process.args_count == 2 and process.command_line : \"*http*\" and process.parent.name : \"cmd.exe\" and\n   process.parent.command_line : \"*  /c curl*\") or\n\n  (process.args : (\"-o\", \"--output\") and\n   (\n    (process.parent.name : (\"powershell.exe\", \"mshta.exe\", \"wscript.exe\", \"cscript.exe\", \"rundll32.exe\", \"regsvr32.exe\") and\n     process.parent.args_count >= 2) or\n\n     (process.parent.name : \"cmd.exe\" and process.parent.command_line : (\"*curl*\", \"*^*^*^*\")) or\n\n     descendant of [process where process.name : (\"winword.exe\", \"excel.exe\", \"powerpnt.exe\", \"wscript.exe\")] or\n\n     process.parent.executable : (\"?:\\\\Users\\\\Public\\\\*\", \"?:\\\\Users\\\\*\\\\AppData\\\\*\", \"?:\\\\ProgramData\\\\*\")\n   ))\n  ) and\n  /* lot of legit curl execution via custom bat scripts or interactively via cmd or powershell */\n  not (process.parent.name : \"cmd.exe\" and process.parent.args :( \"*.bat*\", \"\\\\\\\\*.jpg\", \"curl -L -o \\\\\\\\*\", \"config_%c%a%b_%d%e%f.xml\")) and\n  not (process.parent.name : (\"cmd.exe\", \"powershell.exe\") and process.parent.args_count == 1) and\n  not process.parent.executable : \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\nsc*.tmp\\\\*.exe\" and\n  not process.command_line : (\"*curl -o \\\\\\\\.\\\\nul -v -I -L -s --connect-timeout*\", \"*http://127.0.0.1:*\", \"*http://localhost:*\") and\n  not process.args : (\"https://mirror.init7.net/ctan/systems*\", \"http://localhost:*\",\n                      \"https://*.ctan.org*\", \"texlive/curl\", \"http*.local/*\",\n                      \"http://*/api/build/*zip\",\n                      \"https://blackhole.blob.core.windows.net/*\",\n                      \"https://*.cw-onlineupdate.de/*\",\n                      \"https://gitea.*.prod/*\",\n                      \"https://dl.google.com/*\", \n                      \"https://raw.githubusercontent.com/elastic/*\", \n                      \"https://api.media.atlassian.com/file/*.png\", \n                      \"https://cdn.jsdelivr.net/npm/*.min.js\") and\n\n  /* avoid breaking privileged install */\n  not user.id : \"S-1-5-18\" and\n  not (process.parent.name : \"cmd.exe\" and process.parent.command_line like~ \"*oi-vscode-server*run.app*\") and\n  not (process.parent.name : \"cmd.exe\" and process.parent.command_line like~ \"*showImage.php*\") and\n  not (process.parent.command_line like~ \"*VoicemodInstaller*\" and process.parent.name like~ \"VoicemodInstaller*\") and\n\n  /* curl outputting to NUL means no file is saved to disk - not an ingress tool transfer */\n  not process.args : (\"NUL\", \"/dev/null\")\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,60 @@
+id: "18cdd8c1-4dc8-4ac1-8f7c-830be4c493cc_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    This rule identifies suspicious base64 strings in a command execution. Malware authors may attempt to evade detection
+    and trick users into executing malicious code by encoding and obfuscating their payloads. Several payloads relate to
+    interpreter executions, reverse shells and ELF binaries.
+  rule_id: "18cdd8c1-4dc8-4ac1-8f7c-830be4c493cc"
+  license: Elastic License v2
+  name: Suspicious Base64 String Command-line
+  os_list:
+    - linux
+  reference:
+    - "https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1140/T1140.yaml"
+  version: "1.0.5"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and\nprocess.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\") and \nprocess.parent.executable != null and process.command_line like (\n\n  // python and python3\n  \"*cHl0aG9uIC1jICdpbXBvcnQgc29ja2V0*\", \"*ZXhwb3J0IFJIT1NUPQ*\", \"*cHl0aG9uMyAtYyAnaW1wb3J0IHNvY2tldA*\",\n  \"*cHl0aG9uMyAtYyAnaW1wb3J0IG9zLHB0eSxzb2NrZXQ7*\", \"*cHl0aG9uIC1jICdpbXBvcnQgb3MscHR5LHNvY2tldDs*\",\n  \"*cHl0aG9uIC1jICdpbXBvcnQgb3MscHR5LHNvY2tldDs*\",\n\n  // perl\n  \"*cGVybCAtTUlPIC1l*\", \"*cGVybCAtZQ*\",\n\n  // ruby -r, -e\n  \"cnVieSAtcg*\", \"*cnVie*tZQ*\",\n\n  // php -r & cmd shells\n  \"*cGhwIC1y*\", \"*PD9waHAgaWY*\", \"*PD89YCRfR0VUWzBdYD8*\",\n\n  // lua -e + versioning wildcard\n  \"*bHVh*IC1l*\",\n\n  // sh reverse shells\n  \"*c2ggLWkgPiYgL2Rldi90Y3Av*\", \"*MDwmMTk2O2V4ZWMgMTk2PD4vZGV2L3RjcC8*\", \"*ZXhlYyA1PD4vZGV2L3RjcC8*\",\n  \"*c2ggLWkgNTw+IC9kZXYvdGNwLw*\", \"*c2ggLWkgPiYgL2Rldi91ZHAv*\",\n\n  // nc\n  \"*cm0gL3RtcC9mO21rZmlmbyAvdG1wL2Y7Y2F0IC90bXAvZnxzaCAtaSAyPiYxfG5j*\", \"*YnVzeWJveCBuYw*\",\n\n  // bash reverse shells\n  \"*YmFzaCAtaSA+JiAvZGV2L3RjcC8*\", \"*L2Jpbi9iYXNoIC1sID4gL2Rldi90Y3Av*\",\n\n  // node -e\n  \"*bm9kZSAtZQ*\",\n\n  // socat\n  \"*c29jYXQ*\",\n\n  // ELF\n  \"*f0VMRg*\"\n) and not (\n  process.parent.name in (\"fzf\", \"nvim\") or\n  process.command_line like~ \"sh -c *data *\" or\n  process.parent.executable like (\"/home/*/.cursor-server/bin/linux-x64/*/node\", \"/tmp/.mount_*/usr/share/cursor/cursor\")\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+        - id: T1204
+          name: User Execution
+          reference: "https://attack.mitre.org/techniques/T1204/"
+          subtechnique:
+            - id: T1204.002
+              name: Malicious File
+              reference: "https://attack.mitre.org/techniques/T1204/002/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1027
+          name: Obfuscated Files or Information
+          reference: "https://attack.mitre.org/techniques/T1027/"
+        - id: T1140
+          name: Deobfuscate/Decode Files or Information
+          reference: "https://attack.mitre.org/techniques/T1140/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

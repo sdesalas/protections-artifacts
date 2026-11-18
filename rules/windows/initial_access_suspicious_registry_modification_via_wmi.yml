@@ -1,0 +1,91 @@
+id: "5679047e-6a60-47eb-88c8-6bd3421d5d34_1.0.26"
+type: security-rule
+attributes:
+  description: |
+    Identifies use of the Windows Management Instrumentation StdRegProv provider to modify a certain registry key and from
+    an unusual WMI client process. Adversaries may abuse WMI to proxy registry modification via WmiPrvSE.exe and evade
+    defenses monitoring registry modification by suspicious processes.
+  rule_id: "5679047e-6a60-47eb-88c8-6bd3421d5d34"
+  license: Elastic License v2
+  name: Suspicious Registry Modification via WMI
+  os_list:
+    - windows
+  reference:
+    - "https://docs.microsoft.com/en-us/previous-versions/windows/desktop/regprov/stdregprov"
+  version: "1.0.26"
+  query: "registry where event.action== \"modification\" and\n process.name :\"WmiPrvSE.exe\" and registry.data.strings : \"?*\" and\n   (\n     Effective_process.name :\n                    (\"wscript.exe\", \"cscript.exe\", \"regsvr32.exe\", \"mshta.exe\", \"rundll32.exe\", \"vbc.exe\",\n                     \"msbuild.exe\", \"wmic.exe\", \"cmstp.exe\", \"RegAsm.exe\", \"installutil.exe\",\"RegSvcs.exe\",\n                     \"msxsl.exe\", \"xwizard.exe\", \"csc.exe\", \"winword.exe\", \"excel.exe\", \"powerpnt.exe\",\n                     \"powershell.exe\") or\n\n     Effective_process.executable :\n         (\"?:\\\\Users\\\\Public\\\\*\",\n          \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\*\",\n          \"?:\\\\ProgramData\\\\*\",\n          \"?:\\\\Windows\\\\Microsoft.NET\\\\*\",\n          \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\Temp?_*\",\n          \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\7z*\",\n          \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\Rar*\",\n          \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\BNZ.*\",\n          \"\\\\Device\\\\CdRom*\",\n          \"\\\\Device\\\\Mup\\\\*\",\n          \"\\\\\\\\*\")\n   ) and\n   \n   registry.path : (\n      /* Persistence */\n     \"HKLM\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\",\n     \"HKLM\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\RunOnce\\\\*\",\n     \"HKLM\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\RunOnceEx\\\\*\",\n     \"HKLM\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\",\n     \"HKLM\\\\Software\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\Shell\\\\*\",\n     \"HKEY_USERS\\\\*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\",\n     \"HKEY_USERS\\\\*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\RunOnce\\\\*\",\n     \"HKEY_USERS\\\\*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\RunOnceEx\\\\*\",\n     \"HKEY_USERS\\\\*\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\",\n     \"HKEY_USERS\\\\*\\\\Software\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\Shell\\\\*\", \n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Terminal Server\\\\Install\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\\\\*\",  \n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Terminal Server\\\\Install\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Runonce\\\\*\", \n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Windows\\\\Load\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Windows\\\\Run\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Windows\\\\IconServiceLib\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\Shell\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\Shell\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\AppSetup\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\Taskman\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\Userinit\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\VmApplet\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\\Shell\",\n     \"HKLM\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Logoff\\\\Script\",\n     \"HKLM\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Logon\\\\Script\",\n     \"HKLM\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Shutdown\\\\Script\",\n     \"HKLM\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Startup\\\\Script\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\*\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\\Shell\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Logoff\\\\Script\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Logon\\\\Script\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Shutdown\\\\Script\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\System\\\\Scripts\\\\Startup\\\\Script\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Active Setup\\\\Installed Components\\\\*\\\\ShellComponent\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows CE Services\\\\AutoStartOnConnect\\\\MicrosoftActiveSync\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows CE Services\\\\AutoStartOnDisconnect\\\\MicrosoftActiveSync\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Ctf\\\\LangBarAddin\\\\*\\\\FilePath\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Internet Explorer\\\\Extensions\\\\*\\\\Exec\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Internet Explorer\\\\Extensions\\\\*\\\\Script\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Command Processor\\\\Autorun\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Ctf\\\\LangBarAddin\\\\*\\\\FilePath\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Internet Explorer\\\\Extensions\\\\*\\\\Exec\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Internet Explorer\\\\Extensions\\\\*\\\\Script\",\n     \"HKEY_USERS\\\\*\\\\SOFTWARE\\\\Microsoft\\\\Command Processor\\\\Autorun\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Image File Execution Options\\\\*\\\\VerifierDlls\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Winlogon\\\\GpExtensions\\\\*\\\\DllName\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\SafeBoot\\\\AlternateShell\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\Terminal Server\\\\Wds\\\\rdpwd\\\\StartupPrograms\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\Terminal Server\\\\WinStations\\\\RDP-Tcp\\\\InitialProgram\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\Session Manager\\\\BootExecute\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\Session Manager\\\\SetupExecute\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\Session Manager\\\\Execute\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\Session Manager\\\\S0InitialCommand\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\ServiceControlManagerExtension\",\n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Control\\\\BootVerificationProgram\\\\ImagePath\",\n     \"HKLM\\\\SYSTEM\\\\Setup\\\\CmdLine\",\n     \"HKEY_USERS\\\\*\\\\Environment\\\\UserInitMprLogonScript\", \n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Services\\\\*\\\\ServiceDLL\", \n     \"HKLM\\\\SYSTEM\\\\ControlSet*\\\\Services\\\\*\\\\ImagePath\", \n     \"HKEY_USERS\\\\*Classes\\\\*\\\\InprocServer32\\\\\", \n     \"HKEY_USERS\\\\*Classes\\\\*\\\\LocalServer32\\\\\", \n     \"HKEY_USERS\\\\*Classes\\\\*\\\\DelegateExecute\\\\\", \n     \"HKEY_USERS\\\\*Classes\\\\*\\\\TreatAs\\\\\", \n     \n     /* Evasion */ \n     \"HK*\\\\S-1-5-21-*\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\*\\\\Security\\\\AccessVBOM\", \n     \"HK*\\\\S-1-5-21-*\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\*\\\\Security\\\\VbaWarnings\",\n     \"HK*\\\\S-1-12-1-*\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\*\\\\Security\\\\AccessVBOM\",\n     \"HK*\\\\S-1-12-1-*\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\*\\\\Security\\\\VbaWarnings\",\n     \"HKEY_USERS\\\\*\\\\Software\\\\Microsoft\\\\Windows Script\\\\Settings\\\\AmsiEnable\", \n     \"HK*\\\\*\\\\Software\\\\Microsoft\\\\Windows Script\\\\Settings\\\\AmsiEnable\", \n     \"HKEY_USERS\\\\*Classes\\\\CLSID\\\\*\\\\ScriptletURL\\\\\", \n     \"HKEY_USERS\\\\S-1-5-21-*_Classes\\\\CLSID\\\\*\\\\LocalServer32\\\\\",\n     \"HKEY_USERS\\\\S-1-12-1-*_Classes\\\\CLSID\\\\*\\\\LocalServer32\\\\\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\\ConsentPromptBehaviorAdmin\",\n     \"HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\\EnableLUA\"\n     ) and\n     not registry.path : \"HKLM\\\\SYSTEM\\\\ControlSet001\\\\Control\\\\Terminal Server\\\\WinStations\\\\RDP-Tcp\\\\InitialProgram\" and\n     not registry.data.strings like \"C:\\\\WindowsAzure\\\\*.exe\"\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: Effective_process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: Effective_process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.001
+              name: Spearphishing Attachment
+              reference: "https://attack.mitre.org/techniques/T1566/001/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1047
+          name: Windows Management Instrumentation
+          reference: "https://attack.mitre.org/techniques/T1047/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.001
+              name: Registry Run Keys / Startup Folder
+              reference: "https://attack.mitre.org/techniques/T1547/001/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1112
+          name: Modify Registry
+          reference: "https://attack.mitre.org/techniques/T1112/"
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.004
+              name: InstallUtil
+              reference: "https://attack.mitre.org/techniques/T1218/004/"
+            - id: T1218.005
+              name: Mshta
+              reference: "https://attack.mitre.org/techniques/T1218/005/"
+            - id: T1218.009
+              name: Regsvcs/Regasm
+              reference: "https://attack.mitre.org/techniques/T1218/009/"
+            - id: T1218.010
+              name: Regsvr32
+              reference: "https://attack.mitre.org/techniques/T1218/010/"
+            - id: T1218.011
+              name: Rundll32
+              reference: "https://attack.mitre.org/techniques/T1218/011/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.4.0"

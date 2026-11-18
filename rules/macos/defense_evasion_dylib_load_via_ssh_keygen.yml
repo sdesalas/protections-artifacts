@@ -1,0 +1,34 @@
+id: "53a6460a-a204-42e0-9c92-c3bef161b6c1_1.0.9"
+type: security-rule
+attributes:
+  description: |
+    Detects when the ssh-keygen binary is executed with the -D argument which can be used to load a malicious dylib into
+    memory.
+  rule_id: "53a6460a-a204-42e0-9c92-c3bef161b6c1"
+  license: Elastic License v2
+  name: Dylib Load via SSH-Keygen
+  os_list:
+    - macos
+  reference:
+    - "https://medium.com/@D00MFist/generate-keys-or-generate-dylib-loads-c99ed48f323d"
+  version: "1.0.9"
+  query: |
+    process where event.type == "start" and process.name == "ssh-keygen" and process.args == "-D"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.2"

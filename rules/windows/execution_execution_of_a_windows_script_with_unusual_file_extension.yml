@@ -1,0 +1,41 @@
+id: b76c0a04-b504-4a2f-a0cf-b4175a2f3eea_1.0.36
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of a script with an unusual file extension by Windows Script Host processes (cscript or
+    wscript).
+  rule_id: b76c0a04-b504-4a2f-a0cf-b4175a2f3eea
+  license: Elastic License v2
+  name: Execution of a Windows Script with Unusual File Extension
+  os_list:
+    - windows
+  version: "1.0.36"
+  query: "process where event.action == \"start\" and\n (process.pe.original_file_name :\"wscript.exe\" or process.name : \"wscript.exe\") and process.parent.name != null and\n process.args : (\"-e:*\", \"/e:*\", \"//e:*\") and\n not process.command_line : (\"*.js*\", \"*.vb*\", \"*.wsf*\", \"*.wsh*\", \"*.wsc*\", \"*.tmp*\") and\n /* Issue #286 */\n not process.parent.executable : (\"?:\\\\Program Files\\\\*.exe\", \"?:\\\\Program Files (x86)\\\\*.exe\") and \n not process.command_line : (\"*:\\\\Program Files\\\\*\", \"*:\\\\Program Files (x86)\\\\*\", \"*\\\\Windows\\\\system32\\\\spool\\\\DRIVERS\\\\*\") and\n not (process.name : \"cscript.exe\" and process.args : \"C:\\\\PGM_TC~1\\\\DHL_FR~1\\\\xls2csv.bat\") and\n not (process.args : \"\\\\\\\\*\" and process.args_count >= 3) and\n not (process.args : \"/mts/wav/adf\" and process.args : \"/emf\") and\n not (process.parent.args : \"D:\\\\*.cmd\" and process.args : \"https://app.*:444/api/Banner\") and\n not (process.parent.name : \"cmd.exe\" and process.parent.command_line : (\"\\\"C:\\\\windows\\\\system32\\\\cmd.exe\\\" \", \"cmd \")) and\n not (process.parent.name : \"cmd.exe\" and\n       process.parent.args :\n            (\"C:\\\\ProgramData\\\\NinjaRMMAgent\\\\scripting\\\\customscript_gen_?.bat-ninjascript.bat\",\n             \"C:\\\\Storage\\\\VisualStudioProjects\\\\connect_wise_script\\\\install_speerity.bat\",\n             \"C:\\\\PGM_TC~1\\\\DHL_FR~1\\\\xls2csv.bat\",\n             \"C:\\\\MBS\\\\UTIL\\\\repl.bat\",\n             \"C:\\\\MBS\\\\UTIL\\\\PBSCOVER.BAT\",\n             \"M:\\\\sendkeys.bat Mayer\",\n             \"F:\\\\wamp64\\\\www\\\\centralstores\\\\cronjobs\\\\*.bat\"))\n"
+  min_endpoint_version: "7.15.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.005
+              name: Visual Basic
+              reference: "https://attack.mitre.org/techniques/T1059/005/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "7.15.0"

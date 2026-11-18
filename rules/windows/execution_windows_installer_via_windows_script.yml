@@ -1,0 +1,58 @@
+id: "2e9cac0f-84a8-4578-b480-f3716b7db959_1.0.3"
+type: security-rule
+attributes:
+  description: |
+    Detects attempts to invoke a Windows Installer from a Windows script. Some malware installers use this method to avoid
+    spawning a child process and continue execution via the Windows installer service.
+  rule_id: "2e9cac0f-84a8-4578-b480-f3716b7db959"
+  license: Elastic License v2
+  name: Windows Installer via Windows Script
+  os_list:
+    - windows
+  version: "1.0.3"
+  query: "api where process.Ext.api.name == \"AmsiScanBuffer\" and process.executable != null and user.id != \"S-1-5-18\" and\n\n (process.name in~ (\"wscript.exe\", \"cscript.exe\", \"mshta.exe\", \"msxsl.exe\", \"powershell.exe\") or\n  process.Ext.api.parameters.app_name in (\"JScript\", \"VBScript\", \"PowerShell\")) and\n  \n  (\n   (process.Ext.api.parameters.buffer : \"*ActiveXObject*\" and\n    process.Ext.api.parameters.buffer : (\"*.InstallProduct(*\", \"*.WindowsInstaller.Installer*\")) or\n\n   (process.Ext.api.parameters.buffer : \"*WindowsInstaller*\" and\n    process.Ext.api.parameters.buffer : \"*InstallProduct*\" and process.Ext.api.parameters.buffer : \"*http*\")\n  ) and\n  not process.Ext.api.parameters.content_name : (\"?:\\\\Program Files (x86)\\\\*\", \"?:\\\\Program Files\\\\*\") and\n  not process.parent.executable :\n                     (\"?:\\\\Program Files\\\\HP\\\\HP LaserJet Pro *\\\\Bin\\\\HP LaserJet Pro *.exe\",\n                      \"?:\\\\Program Files (x86)\\\\Tanium\\\\Tanium Client\\\\TaniumClient.exe\",\n                      \"?:\\\\Program Files\\\\System Center Operations Manager\\\\Gateway\\\\MonitoringHost.exe\",\n                      \"?:\\\\Program Files\\\\Microsoft Monitoring Agent\\\\Agent\\\\MonitoringHost.exe\") and\n  not (process.executable : \"C:\\\\Windows\\\\LSDeployment\\\\RemoteDeployment*.exe\" and\n       process.code_signature.subject_name == \"Lansweeper NV\" and process.code_signature.trusted == true)\n"
+  min_endpoint_version: "8.16.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.001
+              name: PowerShell
+              reference: "https://attack.mitre.org/techniques/T1059/001/"
+            - id: T1059.005
+              name: Visual Basic
+              reference: "https://attack.mitre.org/techniques/T1059/005/"
+            - id: T1059.007
+              name: JavaScript
+              reference: "https://attack.mitre.org/techniques/T1059/007/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.007
+              name: Msiexec
+              reference: "https://attack.mitre.org/techniques/T1218/007/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.16.0"

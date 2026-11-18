@@ -1,0 +1,39 @@
+id: "9e8589a6-96fe-450b-b33a-a8be509dbf35_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Identifies the use of Cloudflare Tunnel (cloudflared) to expose a local service or create an outbound tunnel.
+    Adversaries may abuse quick tunnels or named tunnels to proxy C2 traffic or exfiltrate data through Cloudflare's edge
+    while evading direct connection blocking.
+  rule_id: "9e8589a6-96fe-450b-b33a-a8be509dbf35"
+  license: Elastic License v2
+  name: Potential Linux Tunneling via Cloudflared
+  os_list:
+    - linux
+  reference:
+    - "https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-useful-commands/"
+    - "https://attack.mitre.org/techniques/T1572/"
+    - "https://www.trendmicro.com/tr_tr/research/26/c/dissecting-a-warlock-attack.html"
+  version: "1.0.5"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and\n(\n  (\n    process.name == \"cloudflared\" or\n    process.args in (\"--url\", \"-url\", \"--token\", \"-token\")\n  ) and\n  process.args == \"tunnel\" \n) and not (\n  process.args in (\"info\", \"delete\") or\n  process.parent.executable in (\"/usr/lib/systemd/systemd\", \"/lib/systemd/systemd\", \"./runc\", \"/usr/bin/runc\") or\n  process.parent.executable like (\"/var/lib/rancher/*/bin/runc\", \"/home/*/.nvm/versions/node/*/bin/node\") or\n  process.parent.command_line == \"runc init\" or\n  process.parent.args in (\"/etc/init.d/cloudflared\", \"/usr/bin/crun\") or\n  process.executable in (\"/usr/bin/podman\", \"/usr/bin/docker\") or\n  (process.parent.executable == \"/bin/busybox\" and process.parent.args like \"/home/*/tunnel-exit-node.sh\") or\n  (process.name == \"echo\" and process.parent.name == \"xargs\" and process.parent.command_line == \"xargs --null\") or\n  process.working_directory like \"/home/*/Desktop/*\" or\n  (\n    process.executable == \"/builds/qa/ai-test-runner/helpers/modules/cloudflared-linux-amd64\" and\n    process.working_directory == \"/builds/qa/ai-test-runner\"\n  ) or\n  (\n    process.executable == \"/app/ai-test-generation/helpers/modules/cloudflared-linux-amd64\" and\n    process.working_directory == \"/app/ai-test-generation\"\n  ) or\n  process.parent.executable like \"*/node_modules/opencode-ai/bin/opencode*\"\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1572
+          name: Protocol Tunneling
+          reference: "https://attack.mitre.org/techniques/T1572/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

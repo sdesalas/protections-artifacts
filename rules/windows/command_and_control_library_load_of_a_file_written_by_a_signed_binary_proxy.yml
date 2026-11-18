@@ -1,0 +1,47 @@
+id: "7b5a1c52-12ff-4c1b-b1f1-2226ceb11c9a_1.0.31"
+type: security-rule
+attributes:
+  description: |
+    Identifies the image load of a DLL file written or modified by a signed Microsoft binary proxy utility such as
+    MSHTA.exe, CertReq.exe or CertUtil.exe. Adversaries may bypass process and/or signature-based defenses by proxying
+    execution of malicious content with signed binaries.
+  rule_id: "7b5a1c52-12ff-4c1b-b1f1-2226ceb11c9a"
+  license: Elastic License v2
+  name: Library Load of a File Written by a Signed Binary Proxy
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/Hunting-for-Suspicious-Windows-Libraries-for-Execution-and-Evasion"
+  version: "1.0.31"
+  query: "sequence with maxspan=5m\n   [file where\n    process.name : (\"MSHTA.EXE\", \"CertUtil.exe\", \"CertReq.exe\", \"tar.exe\", \"curl.exe\", \"xcopy.exe\")\n    and file.Ext.header_bytes : \"4d5a*\" and process.executable : \"?:\\\\Windows\\\\Sys*\\\\*.exe\" and \n    not (process.name : \"xcopy.exe\" and user.id : \"S-1-5-18\")] as event0\n   [library where not startswith~(process.executable, dll.path) and\n    startswith~(dll.path, event0.file.path) and\n    process.code_signature.subject_name : \"Microsoft*\" and\n    not dll.code_signature.status : (\"trusted\", \"errorExpired\", \"errorCode_endpoint*\") and\n    not (process.executable : \"?:\\\\Windows\\\\SysWOW64\\\\regsvr32.exe\" and dll.path : \"C:\\\\oracle12\\\\*.dll\") and\n    not dll.path :\n            (\"?:\\\\Oracle\\\\product\\\\instantclien*.dll\",\n             \"?:\\\\Program Files\\\\*\",\n             \"?:\\\\Program Files (x86)\\\\*\") and\n    not (process.name : \"regsvr32.exe\" and dll.path : \"?:\\\\Oracle\\\\*.dll\") and\n    not process.executable : \n              (\"?:\\\\Program Files (x86)\\\\Microsoft Visual Studio\\\\*\\\\MSBuild.exe\", \n               \"?:\\\\Windows\\\\Sys*\\\\inetsrv\\\\w3wp.exe\", \n               \"C:\\\\gstr\\\\rdcnet\\\\tools\\\\gacutil.exe\", \n               \"?:\\\\Program Files\\\\IIS Express\\\\iisexpress.exe\",\n               \"C:\\\\Program Files (x86)\\\\Microsoft Visual Studio\\\\*\\\\Common7\\\\IDE\\\\devenv.exe\") and\n    not dll.hash.sha256 : \"cd9c2a615d6b842bda79c0f10eb44cc9b428bf4ad25c0cefbd5f43f9599d51f1\"]\n"
+  min_endpoint_version: "8.4.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.005
+              name: Mshta
+              reference: "https://attack.mitre.org/techniques/T1218/005/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.4.0"

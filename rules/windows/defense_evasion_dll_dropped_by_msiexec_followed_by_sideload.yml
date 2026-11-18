@@ -1,0 +1,47 @@
+id: "1543ed0b-2d7b-42f9-93d2-bf9bfd8759e3_1.0.27"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of an unsigned or untrusted DLL and subsequently loaded by a trusted binary. This behavior is
+    consistent with some malwares leveraging malicious Windows installers to sideload malicious DLLs.
+  rule_id: "1543ed0b-2d7b-42f9-93d2-bf9bfd8759e3"
+  license: Elastic License v2
+  name: DLL Dropped by MSIEXEC followed by SideLoad
+  os_list:
+    - windows
+  version: "1.0.27"
+  query: "sequence by user.id with maxspan=1m\n[file where event.action == \"creation\" and file.extension : \"dll\" and process.name : \"msiexec.exe\"] by file.path\n[library where\n\n   (dll.Ext.relative_file_creation_time < 5000 or dll.Ext.relative_file_name_modify_time < 5000) and\n\n   process.code_signature.status :\"trusted\" and not dll.code_signature.status : (\"trusted\", \"errorCode_endpoint*\") and\n   not dll.path : (\"?:\\\\Windows\\\\Installer\\\\*\",\n                   \"?:\\\\Windows\\\\System32\\\\DriverStore\\\\FileRepository\\\\*\",\n                   \"?:\\\\Windows\\\\SysWOW64\\\\DriverStore\\\\FileRepository\\\\*\",\n                   \"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\",\n                   \"?:\\\\Windows\\\\assembly\\\\*\",\n                   \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Microsoft\\\\Windows\\\\INetCache\\\\IE\\\\*\") and\n   not dll.hash.sha256 : \n                (\"8dc562cda7217a3a52db898243de3e2ed68b80e62ddcb8619545ed0b4e7f65a8\", \n                 \"06cad1e73c3e0976d3b85df7299891a6bf3fadd166972af431e74673305ea12a\", \n                 \"4cb634e37c2622afbcddf706868f4e992db59b7bbb6f99820ec636307f833c32\", \n                 \"1da5bf4f88d663f11c110c191dc56b0970c4fce5cb80b8e094f0023478e0995b\", \n                 \"273bd97fc9c42a07a7e44a285243f0ee38f8668c2a22f095c99d8a3f44146843\", \n                 \"4bf70e90594a6d3fbc042747bb314f541e84c0d5f7ec1cf82beac0afd94b5348\",\n                 \"dd3f06ea143ccc6aba3a05a7093bc6aac6868086a596c015f4e0279df8b97e7e\",\n                 \"e71745fbe166d319711a68478161d746c9aabf7a3de60513cb924dda1184c083\",\n                 \"75d93037c940e3a1de752c73f1d91ae440bf68a236874890506d078f1b4209ec\",\n                 \"f801bb80401c20b582219b2793a80411230a10bbceea4da032b7c9840dbf1f83\") and\n   not dll.pe.imphash : \"c1c7505e1e6e929ebb6b9100e55b050a\" and\n   not process.executable :\n             (\"?:\\\\Program Files\\\\*.exe\", \"?:\\\\Program Files (x86)\\\\*.exe\", \"?:\\\\Windows\\\\Explorer.exe\",\n              \"?:\\\\Windows\\\\SysWOW64\\\\*\", \"?:\\\\Windows\\\\System32\\\\*\", \"?:\\\\Windows\\\\splwow64.exe\", \"?:\\\\Windows\\\\Microsoft.NET\\\\*\") and\n\n   /* DLL loaded from the process.executable current directory */\n   endswith~(substring(dll.path, 0, length(dll.path) - (length(dll.name) + 1)), substring(process.executable, 0, length(process.executable) - (length(process.name) + 1))) and\n\n    not (process.code_signature.subject_name:\n                        (\"Johannes Schindelin\",\n                         \"Datto Inc\",\n                         \"IFS World Operations AB\",\n                         \"RingCentral, Inc.\", \"Net Health Systems, Inc.\",\n                         \"Mobatek\",\n                         \"Red Gate Software Ltd\",\n                         \"Signal Messenger, LLC\",\n                         \"KYLIN INC.\",\n                         \"Cricut, Inc.\",\n                         \"Clevercontrol LLC\",\n                         \"VNG CORPORATION\",\n                         \"Citrix Systems, Inc.\",\n                         \"Reincubate Ltd\",\n                         \"Google LLC\",\n                         \"Corsair Memory, Inc.\",\n                         \"PreVeil, Inc\",\n                         \"Blue Jeans Network, Inc.\",\n                         \"Fortinet Technologies*\",\n                         \"Viber Media S.à r.l.\",\n                         \"Krisp Technologies, Inc\",\n                         \"KASEYA HOLDINGS INC.\",\n                         \"Accenture LLP\",\n                         \"Bizagi Corp.\",\n                         \"Viber Media S.à r.l.\",\n                         \"Fiserv\",\n                         \"KASEYA HOLDINGS INC.\",\n                         \"Sadas Srl\",\n                         \"Viber Media S.à r.l.\",\n                         \"Cisco Systems, Inc.\",\n                         \"Wickr LLC\",\n                         \"Suse LLC\",\n                         \"JACK HENRY & ASSOCIATES, INC.\",\n                         \"Digium, Inc.\",\n                         \"OneSpan North America Inc.\",\n                         \"PortSIP Solutions, Inc.\", \n                         \"Zoom Video Communications, Inc.\",\n                         \"ETM professional control GmbH\") and process.code_signature.trusted == true) and\n    not dll.pe.imphash :\n               (\"dae02f32a21e03ce65412f6e56942daa\",\n                \"d41d8cd98f00b204e9800998ecf8427e\",\n                \"f0abbc6494af9b08bf997ec9670d9ede\")] by dll.path\n"
+  min_endpoint_version: "8.10.0"
+  reputation: true
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.007
+              name: Msiexec
+              reference: "https://attack.mitre.org/techniques/T1218/007/"
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+          subtechnique:
+            - id: T1574.001
+              name: DLL
+              reference: "https://attack.mitre.org/techniques/T1574/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

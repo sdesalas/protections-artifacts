@@ -1,0 +1,73 @@
+id: ce304037-0b55-47bd-aa14-140c658ee48a_1.0.4
+type: security-rule
+attributes:
+  description: |
+    This rule monitors for the loading of kernel modules via an unusual process, indicating the use of a loader. Loadable
+    kernel modules (LKMs) are pieces of code that can be loaded into the kernel at runtime to extend its functionality.
+    These are commonly abused by rootkits or other malicious software to hide their presence or to gain elevated privileges.
+    These LKMs are normally loaded via a pre-installed utility such as insmod, kmod, or modprobe.
+  rule_id: ce304037-0b55-47bd-aa14-140c658ee48a
+  license: Elastic License v2
+  name: Loadable Kernel Module Loaded via Loader
+  os_list:
+    - linux
+  reference:
+    - "https://www.elastic.co/security-labs/continuation-on-persistence-mechanisms"
+  version: "1.0.4"
+  query: |
+    process where event.type == "start" and event.action == "load_module" and (
+      process.name in ("bash", "dash", "sh", "tcsh", "csh", "zsh", "ksh", "fish", "mksh", "busybox", "node", "deno", "nodejs", "java") or
+      process.name like ("memfd:*", ".*", "python*", "perl*", "php*", "ruby*", "lua*") or
+      process.executable like (
+        "./*", "/tmp/*", "/var/tmp/*", "/dev/shm/*", "/run/*", "/var/run/*", "/boot/*", "/sys/*",
+        "/lost+found/*", "/proc/*", "/var/mail/*", "/var/www/*", "/home/*/*", "/root/*", "/mnt/*",
+        "/srv/*", "/etc/*"
+      )
+    ) and
+    not (
+      process.executable like ("/tmp/newroot/*", "/run/systemd/mount-rootfs/sbin/*", "/opt/puppetlabs/puppet/bin/ruby") or
+      (
+        process.parent.command_line == "bash /var/lib/guardicore/bin/gc-enforcement-wrapper start-agent" and
+        process.command_line == "bash /var/lib/guardicore/bin/gc-enforcement-wrapper start-agent" and
+        process.working_directory == "/var/lib/guardicore"
+      ) or
+      (
+        process.command_line == "/bin/bash /bin/mst start" and
+        process.parent.command_line == "/bin/bash /bin/mst start"
+      ) or
+      process.command_line in ("sh -c mst start >> /dev/null", "/bin/sh /usr/local/bin/facter -p -j")
+    )
+  min_endpoint_version: "9.1.4"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.006
+              name: Kernel Modules and Extensions
+              reference: "https://attack.mitre.org/techniques/T1547/006/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1014
+          name: Rootkit
+          reference: "https://attack.mitre.org/techniques/T1014/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "9.1.4"

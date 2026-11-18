@@ -1,0 +1,37 @@
+id: "06516087-9305-482b-af9a-92f4386d2f19_1.0.10"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to modify the permissions or write to Microsoft Anti Malware Scan Interface DLL from unbacked
+    memory.
+  rule_id: "06516087-9305-482b-af9a-92f4386d2f19"
+  license: Elastic License v2
+  name: AMSI Bypass via Unbacked Memory
+  os_list:
+    - windows
+  reference:
+    - "https://learn.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal"
+  version: "1.0.10"
+  query: "api where process.Ext.api.summary : \"* amsi.dll*\" and \n ((process.Ext.api.name in (\"VirtualProtect\", \"VirtualProtectEx\") and process.Ext.api.parameters.protection like \"?W*\") or\n  process.Ext.api.name == \"WriteProcessMemory\") and\n process.executable != null and process.thread.Ext.call_stack_summary like \"?*\" and process.thread.Ext.call_stack_final_user_module.name != null and\n process.thread.Ext.call_stack_final_user_module.name == \"Unbacked\" and\n process.thread.Ext.call_stack_final_user_module.protection_provenance != null and \n not process.thread.Ext.call_stack_final_user_module.protection_provenance like (\"Kernel\", \"Kernel|*\") and\n not (process.thread.Ext.call_stack_summary == \"Unbacked\" and process.thread.Ext.call_stack_final_user_module.protection_provenance == \"Unbacked\") and\n process.thread.Ext.call_stack_final_user_module.hash.sha256 != \"07e82c4bc4f48e94a634480ff5140b94b2026a7716473867806355957dc4d291\" and\n not process.parent.executable : \"C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\BattleBit Remastered\\\\EasyAntiCheat.exe\" and\n not _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry, $entry.trusted == true and\n                  $entry.subject_name in (\"Microsoft Windows Hardware Compatibility Publisher\", \"Microsoft Windows Software Compatibility Publisher\")) and\n not (process.executable : \"?:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\*\\\\ngen.exe\" and\n      process.thread.Ext.call_stack_summary == \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|Unbacked|protector32.dll\")\n"
+  min_endpoint_version: "8.10.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

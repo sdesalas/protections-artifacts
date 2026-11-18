@@ -1,0 +1,34 @@
+id: "42e3338b-c9a0-45bc-9ebf-dfbf1c45289d_1.0.16"
+type: security-rule
+attributes:
+  description: |
+    Detects when Ruby makes a network connection followed immediately by the rename or modification of a macOS binary. This
+    initial diagnostic rule is meant to allow for an analysis of this activity and tune this rule to detect potential
+    malicious initial access via Ruby scripts or packages.
+  rule_id: "42e3338b-c9a0-45bc-9ebf-dfbf1c45289d"
+  license: Elastic License v2
+  name: Suspicious Executable Download via Ruby
+  os_list:
+    - macos
+  reference:
+    - "https://www.stepsecurity.io/blog/sleepergem-compromised-rubygems-drop-persistent-backdoor"
+  version: "1.0.16"
+  query: "sequence by process.entity_id with maxspan=1m\n[network where event.type == \"start\" and process.name == \"ruby\"]\n[file where event.action == \"modification\" and process.name == \"ruby\" and \n file.Ext.header_bytes like~ (\"cffaedfe*\", \"cafebabe*\") and\n file.path like~ (\"/Users/Shared/*\", \"/tmp/*\", \"/private/tmp/*\", \"/var/tmp/*\", \"/private/var/tmp/*\", \"/usr/local/bin/*\") and\n not file.extension in (\"dylib\", \"so\", \"bundle\")]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.16.0"

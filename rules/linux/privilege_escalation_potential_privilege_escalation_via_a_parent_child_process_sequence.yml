@@ -1,0 +1,42 @@
+id: ee4a9893-2c55-4268-9292-d4efb15e8195_1.0.5
+type: security-rule
+attributes:
+  description: |
+    Detects a potential privilege escalation sequence via a parent/child process relationship. This rule checks for non-root
+    execution of a parent process executable in a user or world-writeable directory by a non-root user followed by a UID
+    change event to 0 (root) by the child process. This sequence is indicative of a potential local privilege escalation
+    exploit.
+  rule_id: ee4a9893-2c55-4268-9292-d4efb15e8195
+  license: Elastic License v2
+  name: Potential Privilege Escalation via a Parent/Child Process Sequence
+  os_list:
+    - linux
+  version: "1.0.5"
+  query: "sequence with maxspan=30s \n  [process where event.type == \"start\" and event.action == \"exec\" and\n  user.id != 0 and process.parent.user.id != 0 and process.parent.group.id != 0 and\n  process.interactive == true and\n  (\n    process.executable like (\".*\", \"/tmp/*\", \"/dev/shm/*\", \"/var/tmp/*\", \"/run/user/*\", \"/var/run/user/*\") or\n    (process.executable like \"/home/*/*\" and process.args like \".*\") or\n    process.parent.executable like (\".*\", \"/tmp/*\", \"/dev/shm/*\", \"/var/tmp/*\", \"/run/user/*\", \"/var/run/user/*\") or\n    (process.parent.executable like \"/home/*/*\" and process.parent.args like \".*\")\n  ) and\n  not (\n    process.parent.executable like (\n      \"/home/*/.conda/envs/fmf_server_agent/bin/python*\", \"/home/*/.local/share/uv/python/cpython-*-linux-x86_64-gnu/bin/python*\",\n      \"/home/*/.local/share/mise/installs/node/*/bin/node\", \"/tmp/newroot/*\", \"/home/*/.local/share/claude/versions/*\",\n      \"/home/*/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex\",\n      \"/home/*/.vscode-server/bin/*/node\", \"/home/*/.local/bin/claude\", \"/run/user/*/.bubblewrap/newroot/*\",\n      \"/tmp/go-build*/*/sso.test\", \"./bd.sh\", \"/usr/bin/node\", \"/usr/bin/terminator\", \"/usr/bin/yakuake\", \"/usr/libexec/gnome-terminal-server\",\n      \"/usr/libexec/ptyxis-agent\", \"/home/*/Desktop/actions-runner/bin.*/Runner.Worker\",\n      \"/home/*/.nvm/versions/node/v*/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe\",\n      \"/home/*/.nvm/versions/node/v*/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/*/bin/codex\",\n      \"/home/*/.local/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/*/bin/codex\",\n      \"/home/*/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/*/codex/codex\",\n      \"/home/*/.codex/packages/standalone/releases/*/bin/codex\", \"/home/*/.npm-global/bin/claude\", \"/home/*/.local/bin/copilot\",\n      \"/home/*/.local/bin/agy\", \"/home/*/.local/bin/kiro-cli-chat\", \"/home/*/.local/bin/kiro-cli-term\", \"/home/*/.local/bin/zellij\",\n      \"/home/*/.pixi/bin/pixi\", \"/home/*/.bun/bin/bun\", \"/home/*/.vnc/xstartup\", \"/home/*/bin/tmux\", \"/home/*/.local/share/cursor-agent/versions/*/node\",\n      \"/home/*/.cache/yay/llmfit/src/llmfit/target/release/deps/llmfit-*\", \"/home/*/.sideload/nvim/nvim-linux-x86_64/bin/nvim\",\n      \"/home/*/repos/gocryptfs/fortanix-dsm-fseagent\", \"/home/*/devel/rak-ps/base/test.runner/tts.interpreter\", \"/home/*/cricket/cricket/util/cenic/*.pl\",\n      \"/home/*/.local/share/containers/storage/overlay/*/merged/usr/libexec/openssh/sshd-session\",\n      \"./merged/home/*/.local/share/containers/storage/overlay/*/merged/usr/libexec/openssh/sshd-session\",\n      \"./merged/var/lib/containers/storage/overlay/*/merged/usr/libexec/openssh/sshd-session\",\n      \"/var/lib/containers/storage/overlay/*/merged/usr/libexec/openssh/sshd-session\", \"/tmp/*/.vscode-server/bin/*/node\",\n      \"/tmp/*/easybuild/LLVM/*/llvm.obj.*/bin/clang-*\", \"/sw/eb/sw/*\", \"/home/*/.vscode-server/cli/servers/Stable-*/server/node\",\n      \"/home/*/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex\",\n      \"/home/*/.nvm/versions/node/*/bin/node\", \"/home/*/cricket/util/cenic/decomDevice.pl\", \"/home/*/.cursor-server/bin/linux-x64/*/node\",\n      \"/home/*/h/*/anaconda3/envs/gd/bin/python3.*\", \"/tmp/.tmp*/.vscode-server/cli/servers/Stable-*/server/node\",\n      \"/home/*/my-tools/kitty.app/bin/kitty\", \"/home/*/bin/ext/gocryptfs*\", \"/home/*/.local/bin/micromamba\",\n      \"/tmp/.mount_Cursor*/usr/share/cursor/cursor\", \"/home/*/sp/bin/goofys\", \"/usr/bin/cmake\", \"/tmp/vscode-komo/*/server/node\",\n      \"/home/*/sysadmin/linuxCommands/OnGuard/clearpass-onguard-installer*\", \"/home/*/Downloads/Antigravity-arm64/antigravity\"\n    ) or\n    process.executable like (\n      \"./sh/relaunch.sh\", \"./install-components.sh\", \"./clean-docker.sh\", \"./docker-deploy.sh\", \"./bin/deploy-nautilus\", \"./get_helm.sh\",\n      \"/home/*/scripts/odoo.sh\", \"/home/*/Scripts/.clear_etc_hosts.sh\", \"/home/*/Scripts/simplified_add_private_ips_to_etc_hosts.sh\",\n      \"/home/*/.local/bin/sshuttle\", \"/home/*/.linuxbrew/bin/brew\", \"/home/*/repos/gocryptfs/fortanix-dsm-fseagent\", \"/home/*/bin/rootlesskit\",\n      \"/home/grads/*/miniconda3/envs/*/bin/python*\", \"/home/grads/*/anaconda3/envs/*/bin/python*\", \"/home/staff/*/.local/share/uv/python/cpython-*/bin/python*\",\n      \"/home/*/ntl/venv/bin/python\", \"/home/*/.venv/lib/python*/site-packages/playwright/driver/node\", \"/home/*/cricket/cricket/util/cenic/*.pl\",\n      \"/home/*/run_metering_for_all_times.sh\", \"/home/*/bin/crc\", \"/home/*/crc-linux-*/crc\", \"/home/*/.local/bin/k8t\", \"/home/*/bin/minikube\",\n      \"/home/*/.local/share/fnm/node-versions/v*/installation/bin/node\", \"/home/*/.nvm/versions/node/v*/bin/node\", \"/home/*/.hermes/node/bin/node\",\n      \"/home/*/updateThingsBoard/*.sh\", \"/home/*/.ampdata/instances/*/AMP_Linux_x86_64\", \"/home/*/utils/vpn/vpn.sh\", \"/home/*/local/bin/pvbatch\",\n      \"/tmp/newroot/usr/bin/flatpak\", \"/tmp/newroot/usr/bin/sh\", \"/cav/gtm/lke\", \"/home/*/cricket/util/cenic/*.pl\", \"/home/*/restart_starman.sh\",\n      \"/home/*/Programy/DCC_harris_release/dcc\", \"/tmp/newroot/var/lib/awx/venv/awx/bin/python3\", \"/tmp/var/lib/awx/venv/awx/bin/python3\",\n      \"/home/oracle/bin/request-daily.sh\", \"./merged/var/lib/containers/storage/overlay/*\", \"/usr/bin/podman\", \"/home/*/.conda/envs/*/bin/python\",\n      \"/home/*/go/src/*/odinq\", \"/tmp/newroot/usr/bin/sudo\", \"/usr/bin/consolehelper\", \"/home/*/llama.cpp/build/bin/llama-server\"\n    ) or\n    process.command_line in (\"/usr/bin/env bash ./run_docker.sh\", \"/usr/bin/env bash ./run_docker_prod.sh\") or \n    (process.parent.executable == \"/tmp/newroot/var/lib/awx/venv/awx/bin/python3\" and process.executable == \"/tmp/newroot/var/lib/awx/venv/awx/bin/python3\") or\n    (process.parent.executable == \"/tmp/newroot/etc/profiles/per-user/tilupe/bin/starship\" and process.executable == \"/tmp/newroot/etc/profiles/per-user/tilupe/bin/starship\")\n  )] by process.entity_id\n  [process where event.type == \"change\" and event.action == \"uid_change\" and\n  user.id == 0 and process.parent.user.id != 0 and process.parent.group.id != 0 and\n  process.executable != \"/usr/bin/sudo\"] by process.parent.entity_id\n"
+  min_endpoint_version: "8.2.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1068
+          name: Exploitation for Privilege Escalation
+          reference: "https://attack.mitre.org/techniques/T1068/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.2.0"

@@ -1,0 +1,35 @@
+id: d00bd50b-577e-47a7-9234-b4bfaa599791_1.0.13
+type: security-rule
+attributes:
+  description: |
+    This rule monitors for suspicious PHP command executions by detecting the start of a PHP process with a command line
+    argument that contains keywords commonly used by attackers to execute malicious code. These command line arguments
+    include operations to execute code, create subprocesses, and encode or decode data.
+  rule_id: d00bd50b-577e-47a7-9234-b4bfaa599791
+  license: Elastic License v2
+  name: Suspicious PHP Command Execution
+  os_list:
+    - linux
+  version: "1.0.13"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.parent.executable != null and\nprocess.executable like (\"/bin/php*\", \"/usr/bin/php*\", \"/usr/local/bin/php*\") and\nprocess.args == \"-r\" and process.command_line like~ (\n  \"*exec(*\", \"*system(*\", \"*shell_exec(*\", \"*passthru(*\", \"*proc_open(*\", \"*pcntl_exec(*\", \"*popen(*\", \n  \"*eval(*\", \"*assert(*\", \"*create_function(*\", \"*preg_replace(*e*\", \"*include(*\", \"*require(*\",\n  \"*base64_decode(*\", \"*gzinflate(*\", \"*gzuncompress(*\", \"*str_rot13(*\", \"*urldecode(*\", \"*chr(*\", \n  \"*ord(*\", \"*strrev(*\", \"*strtr(*\", \"*pack(*\", \"*unpack(*\", \"*curl_exec(*\", \"*curl_multi_exec(*\",\n  \"*file_get_contents(*\", \"*fopen(*\", \"*fsockopen(*\", \"*pfsockopen(*\", \"*stream_socket_client(*\",\n  \"*socket_create(*\", \"*socket_connect(*\", \"*socket_write(*\", \"*socket_read(*\", \"*mail(*\",\n  \"*move_uploaded_file(*\"\n) and\nnot (\n  // Exclude web server processes as these are covered by other rules\n  process.working_directory like (\n    \"/var/www/*\", \"/builds/*\", \"/home/*/jenkins/*\", \"/home/*/public_html*\", \"/var/lib/ldap-account-manager/config\",\n    \"/workspace/*\", \"/mnt/*\", \"/srv/www/*\"\n  ) or\n  process.parent.args like (\n    \"/var/www/html/*\", \"source /home/*/.claude/shell*\", \"scripts/ci/render_build_configs.sh\", \"scripts/ci/build_package_vendor_cache.sh\",\n    \"../source/scripts/ci/build_package_vendor_cache.sh\", \"/usr/local/bin/ncp-notify-update\", \"/usr/local/bin/ncp-notify-unattended-upgrade\",\n    \"/usr/local/bin/ncp-check-nc-version\", \"/usr/local/bin/ncp-check-version\"\n  ) or\n  process.args like \"/usr/local/cpanel/*\" or\n  process.command_line like (\n    \"*https://composer.github.io/installer.sig*\",\n    \"*json_decode(file_get_contents('php://stdin')*\",\n    \"php -r exit(@fsockopen(getenv('DB_HOST')?:'postgres', (int)(getenv('DB_PORT')?:5432)) ? 0 : 1);\",\n    \"php -r exit(@fsockopen(\\\"127.0.0.1\\\", 9501) ? 0 : 1);\",\n    \"php -r echo urldecode(stream_get_contents(STDIN));\",\n    \"*include(\\\"/var/www/nextcloud/config/config.php\\\")*\",\n    \"php -n -r exit(@file_get_contents(\\\"http://127.0.0.1/health\\\") === false ? 1 : 0);\",\n    \"php -r exit(@file_get_contents('http://127.0.0.1:8080/health') === false ? 1 : 0);\"\n  ) or\n  process.parent.command_line like (\"runc init\", \"*/root/.claude/shell-snapshots/snapshot-*\") or\n  process.parent.executable in (\"/opt/teleport/system/bin/teleport\", \"/usr/sbin/sshd\", \"/usr/bin/runc\") or\n  (\n    process.executable == \"/usr/local/bin/php\" and\n    process.command_line == \"php -r exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\"\n  )\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "7.15.0"

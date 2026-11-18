@@ -1,0 +1,35 @@
+id: "51894221-7657-4b56-9406-e080e19ad159_1.0.40"
+type: security-rule
+attributes:
+  description: |
+    Identifies scripting utilities and commonly abused binary proxy programs making a DNS request to a known public IP
+    address lookup web service. Malwares tend to perform this action to assess potential targets.
+  rule_id: "51894221-7657-4b56-9406-e080e19ad159"
+  license: Elastic License v2
+  name: External IP Address Discovery via a Trusted Program
+  os_list:
+    - windows
+  version: "1.0.40"
+  query: "sequence by process.entity_id with maxspan=5m\n  [process where event.action == \"start\" and user.id like (\"S-1-5-21*\", \"S-1-12-*\") and\n    (\n     process.name : (\"wscript.exe\", \"cscript.exe\", \"regsvr32.exe\", \"mshta.exe\", \"rundll32.exe\", \"vbc.exe\",\n                     \"powershell.exe\", \"pwsh.exe\", \"msbuild.exe\", \"wmic.exe\", \"cmstp.exe\", \"RegAsm.exe\",\n                     \"installutil.exe\",\"RegSvcs.exe\", \"msxsl.exe\", \"xwizard.exe\", \"csc.exe\", \"curl.exe\") or \n                     \n     (process.name : \"node.exe\" and  process.Ext.relative_file_name_modify_time <= 300) or \n     \n     process.executable : (\"?:\\\\Program Files\\\\Java\\\\jre*\\\\bin\\\\javaw.exe\",\n                           \"?:\\\\Program Files (x86)\\\\Java\\\\jre*\\\\bin\\\\javaw.exe\",\n                           \"?:\\\\Program Files\\\\Java\\\\jre*\\\\bin\\\\java.exe\",\n                           \"?:\\\\Program Files (x86)\\\\Java\\\\jre*\\\\bin\\\\java.exe\",\n                           \"?:\\\\Windows\\\\Microsoft.NET\\\\*.exe\")\n     ) and\n     not (process.name : \"powershell.exe\" and process.working_directory : \"\\\\\\\\VMHOST\\\\Users\\\\*\\\\Downloads\\\\\" and\n          process.parent.executable : \"\\\\Device\\\\Mup\\\\VMHOST\\\\*\") and\n     not process.command_line :  \"\\\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\\\"\" and\n     not (process.name : \"curl.exe\" and process.command_line : \"curl  -s ipinfo.io/*\" and \n          process.parent.name == \"cmd.exe\" and process.parent.command_line == \"\\\"C:\\\\Windows\\\\system32\\\\cmd.exe\\\" \") and\n     not (process.name : \"curl.exe\" and\n          process.parent.executable : (\"?:\\\\Program Files\\\\Git\\\\*\\\\bash.exe\",\n                                       \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Programs\\\\Git\\\\*\\\\bash.exe\") and\n          process.command_line : (\"*https://api.ipify.org*\",\n                                  \"*https://ipinfo.io*\",\n                                  \"*https://checkip.amazonaws.com*\",\n                                  \"*http://ip-api.com*\"))\n   ]\n  [dns where\n    dns.question.name :\n         (\n          \"ip-api.com\",\n          \"checkip.dyndns.org\",\n          \"api.ipify.org\",\n          \"api.ipify.com\",\n          \"whatismyip.akamai.com\",\n          \"bot.whatismyipaddress.com\",\n          \"ifcfg.me\",\n          \"ifconfig.me\",\n          \"ident.me\",\n          \"ipof.in\",\n          \"ip.tyk.nu\",\n          \"icanhazip.com\",\n          \"ipv4.icanhazip.com\",\n          \"ipv6.icanhazip.com\",\n          \"curlmyip.com\",\n          \"wgetip.com\",\n          \"eth0.me\",\n          \"ipecho.net\",\n          \"ip.appspot.com\",\n          \"api.myip.com\",\n          \"geoiptool.com\",\n          \"api.2ip.ua\",\n          \"api.ip.sb\",\n          \"ipinfo.io\",\n          \"checkip.amazonaws.com\",\n          \"wtfismyip.com\",\n          \"iplogger.*\",\n          \"freegeoip.net\",\n          \"freegeoip.app\",\n          \"geoplugin.net\",\n          \"myip.dnsomatic.com\",\n          \"www.geoplugin.net\",\n          \"api64.ipify.org\",\n          \"ip4.seeip.org\",\n          \"*.geojs.io\",\n          \"*portmap.io\",\n          \"api.db-ip.com\",\n          \"geolocation-db.com\",\n          \"httpbin.org\",\n          \"myip.opendns.com\",\n          \"ipwho.is\",\n          \"ipwhois.app\",\n          \"freeipapi.com\",\n          \"myip.ipip.net\",\n          \"inet-ip.info\"\n         )\n  ]\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1016
+          name: System Network Configuration Discovery
+          reference: "https://attack.mitre.org/techniques/T1016/"
+      tactic:
+        id: TA0007
+        name: Discovery
+        reference: "https://attack.mitre.org/tactics/TA0007/"
+  internal:
+    min_endpoint_version: "8.4.0"

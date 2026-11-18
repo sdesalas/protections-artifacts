@@ -1,0 +1,60 @@
+id: "4dd92062-2871-43bc-adda-82f15cf6e189_1.0.31"
+type: security-rule
+attributes:
+  description: |
+    Identifies when the openssl utility is used to decode and/or decrypt a payload and write it to an abnormal or suspicious
+    directory. Malware authors may attempt to evade detection by encoding and/or encrypting their payload. This behavior is
+    consistent with the Bundlore malware family.
+  rule_id: "4dd92062-2871-43bc-adda-82f15cf6e189"
+  license: Elastic License v2
+  name: Decoded or Decrypted Payload Written to Suspicious Directory
+  os_list:
+    - macos
+  reference:
+    - "https://attack.mitre.org/software/S0482/"
+  version: "1.0.31"
+  query: "process where event.action == \"exec\" and\n  ((process.name == \"openssl\" and process.args like~ \"-out\" and process.args like~ \"enc\" and process.args in (\"-d\", \"-base64\") and\n    process.args like~ (\"/tmp/*\", \n                        \"/Users/*/.*\",\n                        \"/Applications/*/.*\",\n                        \"/private/tmp/*\", \n                        \"/var/tmp/*\", \n                        \"/var/folders/*\", \n                        \"/Users/Shared/*\",\n                        \"/Library/Graphics/*\",\n                        \"/Users/*/Library/Preferences/*\",\n                        \"/Users/*/Library/Services/*\", \n                        \"/Library/Containers/*\", \n                        \"/var/root/*\", \n                        \"/var/lib/*\",\n                        \"/Library/WebServer/*\",\n                        \"/Library/Fonts/*\") and\n    not process.parent.command_line like~ \"*/.claude/shell-snapshots/snapshot-*\") or \n   (process.name == \"base64\" and process.args == \"-d\" and \n    process.args like~ (\"/tmp/*\", \n                        \"*/.*\",\n                        \"/private/tmp/*\", \n                        \"/var/tmp/*\", \n                        \"/var/folders/*\", \n                        \"/Users/Shared/*\", \n                        \"/Library/Graphics/*\",\n                        \"/Users/*/Library/Preferences/*\",\n                        \"/Users/*/Library/Services/*\", \n                        \"/Library/Containers/*\", \n                        \"/var/root/*\", \n                        \"/var/lib/*\",\n                        \"/Library/WebServer/*\",\n                        \"/Library/Fonts/*\") and \n    not process.parent.command_line like~ \"*/.claude/shell-snapshots/snapshot-*\"))\n"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+        - id: T1204
+          name: User Execution
+          reference: "https://attack.mitre.org/techniques/T1204/"
+          subtechnique:
+            - id: T1204.002
+              name: Malicious File
+              reference: "https://attack.mitre.org/techniques/T1204/002/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1027
+          name: Obfuscated Files or Information
+          reference: "https://attack.mitre.org/techniques/T1027/"
+        - id: T1140
+          name: Deobfuscate/Decode Files or Information
+          reference: "https://attack.mitre.org/techniques/T1140/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.2"

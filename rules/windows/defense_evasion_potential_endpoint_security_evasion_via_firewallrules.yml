@@ -1,0 +1,40 @@
+id: "7cfc9edd-d180-43ba-a1d4-7f2eb4285787_1.0.4"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to create custom Windows Firewall rules to block traffic originating from Endpoint security file
+    paths. Such actions could aid an adversary in evading the transmission of alerts and telemetry to the server side.
+  rule_id: "7cfc9edd-d180-43ba-a1d4-7f2eb4285787"
+  license: Elastic License v2
+  name: Potential Endpoint Security Evasion via FirewallRules
+  os_list:
+    - windows
+  reference:
+    - "https://medium.com/csis-techblog/silencing-microsoft-defender-for-endpoint-using-firewall-rules-3839a8bf8d18"
+  version: "1.0.4"
+  query: "registry where \n registry.path : \"HKLM\\\\SYSTEM\\\\*ControlSet*\\\\Services\\\\SharedAccess\\\\Parameters\\\\FirewallPolicy\\\\FirewallRules\\\\*\" and \n registry.data.strings : (\"*Block*App*\\\\Elastic\\\\*\", \n                          \"*Block*App*\\\\Windows Defender Advanced Threat Protection\\\\*\", \n                          \"*Block*App*\\\\CrowdStrike\\\\*\", \n                          \"*Block*App*\\\\SentinelOne\\\\*\", \n                          \"*Block*App*\\\\Palo Alto Networks\\\\*\")\n"
+  min_endpoint_version: "7.16.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.16.0"

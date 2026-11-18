@@ -1,0 +1,36 @@
+id: "4154c8ce-c718-4641-80db-a6a52276f1a4_1.0.41"
+type: security-rule
+attributes:
+  description: |
+    Identifies binaries that have been identically named to Apple or popular third-party programs and have invalid or
+    untrusted code signatures. Adversaries may attempt to manipulate the name of a process to make it appear legitimate or
+    benign.
+  rule_id: "4154c8ce-c718-4641-80db-a6a52276f1a4"
+  license: Elastic License v2
+  name: Potential Binary Masquerading via Invalid Code Signature
+  os_list:
+    - macos
+  version: "1.0.41"
+  query: "process where event.action == \"exec\" and\n (\n   process.name like (\"com.apple.*\", \"com.jamf.*\", \"jamf*\", \"zoom.us\") or \n   process.executable like \"/Users/*/Library/com.apple.*\"\n  ) and\n (process.code_signature.trusted == false or process.code_signature.exists == false) and\n not (process.code_signature.subject_name in (\"Software Signing\", \"com.apple.WebKit.Networking\", \"com.apple.WebKit.WebContent\", \"macOS Software Signing\") and\n      process.name in\n           (\"com.apple.WebKit.WebContent.Development\",\n            \"com.apple.WebKit.GPU.Development\",\n            \"com.apple.WebKit.Networking.Development\",\n            \"com.apple.WebKit.Storage.Development\")) and\n not process.executable like~ (\"/usr/local/jamf/bin/jamf\", \"com.apple.WebKit.Networking.Development\", \"/Library/Application Support/JAMF/Remote Assist/jamfRemoteAssistLauncher\",\n                           \"/Library/Application Support/JAMF/Remote Assist/jamfRemoteAssistConnectorUI.app/Contents/MacOS/jamfRemoteAssistConnectorUI\",\n                           \"/Users/*/Library/Caches/ms-playwright/*\") and\n not process.parent.executable in (\"/sbin/launchd\", \"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon\") and\n not process.Ext.effective_parent.executable in (\"/Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon\",\n                                                \"/System/Library/PrivateFrameworks/CoreSpeech.framework/corespeechd\") and\n not (process.Ext.effective_parent.executable == \"/Applications/Visual Studio Code.app/Contents/MacOS/Electron\" and process.name == \"com.apple.WebKit.WebContent.Development\") and\n not (process.code_signature.signing_id in (\"com.apple.WebKit.WebContent\", \"us.zoom.xos\") and process.code_signature.trusted == true) and\n not (process.name == \"zoom.us\" and process.code_signature.subject_name == \"Developer ID Application: Zoom Video Communications, Inc. (BJ4HAAB9B3)\" and process.code_signature.team_id == \"BJ4HAAB9B3\") and\n not process.hash.sha256 in (\"7519ac10c724566b7a57607cc2fc88a876bdd91a585e690c2480093b582c73e6\", \"930b075c52f829efcd431cee324403e1e8b03bf2039b1343aae31570034d30e2\")\n"
+  min_endpoint_version: "8.7.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1036
+          name: Masquerading
+          reference: "https://attack.mitre.org/techniques/T1036/"
+          subtechnique:
+            - id: T1036.001
+              name: Invalid Code Signature
+              reference: "https://attack.mitre.org/techniques/T1036/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.7.0"

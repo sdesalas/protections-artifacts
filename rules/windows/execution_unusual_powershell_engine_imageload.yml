@@ -1,0 +1,40 @@
+id: f57505bb-a1d2-4d3b-b7b5-1d81d7bdb80e_1.0.39
+type: security-rule
+attributes:
+  description: |
+    Identifies the PowerShell engine being invoked by unexpected processes. Instead of executing PowerShell functionality
+    with powershell.exe, some attackers do this to operate more stealthily.
+  rule_id: f57505bb-a1d2-4d3b-b7b5-1d81d7bdb80e
+  license: Elastic License v2
+  name: Unusual PowerShell Engine ImageLoad
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/elastic-security-labs-steps-through-the-r77-rootkit"
+  version: "1.0.39"
+  query: "sequence by process.entity_id with maxspan=1m\n [process where event.action == \"start\" and\n  not process.Ext.token.integrity_level_name : (\"system\", \"low\") and \n  process.code_signature.subject_name : \"Microsoft *\" and \n  /* Issue #288 */\n  process.executable : (\"?:\\\\Windows\\\\System32\\\\*.exe\", \n                        \"?:\\\\Windows\\\\SysWOW64\\\\*.exe\", \n                        \"?:\\\\Windows\\\\Microsoft.NET\\\\*.exe\") and\n  not process.executable : (\"?:\\\\Windows\\\\System32\\\\wbem\\\\WmiPrvSE.exe\",\n                            \"?:\\\\Windows\\\\SysWOW64\\\\wbem\\\\WmiPrvSE.exe\",\n                            \"?:\\\\Windows\\\\System32\\\\inetsrv\\\\*\",\n                            \"?:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\*\",\n                            \"?:\\\\windows\\\\System32\\\\DriverStore\\\\*\",\n                            \"?:\\\\Windows\\\\system32\\\\Essentials\\\\Dashboard.exe\", \n                            \"?:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\*\\\\RegAsm.exe\",\n                            \"?:\\\\Windows\\\\System32\\\\vmconnect.exe\") and\n  not (process.executable : \"?:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\*\\\\aspnet_compiler.exe\" and\n       process.parent.executable : \"?:\\\\Program Files\\\\Microsoft Visual Studio\\\\*\\\\MSBuild.exe\") and\n  not (process.name : \"rundll32.exe\" and process.command_line : \"*zzzzInvokeManagedCustomActionOutOfProc*\") and\n  not (process.name : \"rundll32.exe\" and process.args :\"AppXDeploymentExtensions.OneCore.dll,ShellRefresh\" and\n       process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\") and\n  not (process.name : \"dllhost.exe\" and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and\n       /* CrowdStrike.RemoteResponse CLSIDs */\n       process.command_line : (\"*BD07DDB9-1C61-4DCE-9202-A2BA1757CDB2*\", \n                               \"*BFCC80BE-AE9A-4E79-8B13-454A10C3A1B1*\", \n                               \"*AB8902B4-09CA-4BB6-B78D-A8F59079A8D5*\",\n                               \"*338B40F9-9D68-4B53-A793-6B9AA0C5F63B*\")) and \n  not (process.name : \"SearchFilterHost.exe\" and process.parent.executable : \"?:\\\\WINDOWS\\\\system32\\\\SearchIndexer.exe\") and \n  not (process.name : (\"RuntimeBroker.exe\", \"smartscreen.exe\") and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\") and \n  not (process.name : \"RegAsm.exe\" and process.args : \"?:\\\\Program Files\\\\CloudBackup\\\\DS-Client\\\\\\\\System.Management.Automation.dll\") and\n  not (process.name : \"WerFault.exe\" and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and process.parent.args : \"WerSvcGroup\") and\n  not (process.name : \"dllhost.exe\" and process.parent.executable : \"?:\\\\Windows\\\\System32\\\\svchost.exe\" and process.parent.args : \"DcomLaunch\") and\n  not (process.name : \"regsvr32.exe\" and process.args : (\"?:\\\\Windows\\\\Microsoft.NET\\\\*\", \"?:\\\\Windows\\\\assembly\\\\NativeImages*\", \"?:\\\\Windows\\\\Installer\\\\MSI*\"))]\n [library where dll.name : (\"System.Management.Automation.ni.dll\", \"System.Management.Automation.dll\") and not\n  process.name :\n   (\n    \"Altaro.SubAgent.exe\",\n    \"AppV_Manage.exe\",\n    \"azureadconnect.exe\",\n    \"CcmExec.exe\",\n    \"configsyncrun.exe\",\n    \"choco.exe\",\n    \"ctxappvservice.exe\",\n    \"DVLS.Console.exe\",\n    \"edgetransport.exe\",\n    \"exsetup.exe\",\n    \"forefrontactivedirectoryconnector.exe\",\n    \"InstallUtil.exe\",\n    \"JenkinsOnDesktop.exe\",\n    \"Microsoft.EnterpriseManagement.ServiceManager.UI.Console.exe\",\n    \"mmc.exe\",\n    \"mscorsvw.exe\",\n    \"msexchangedelivery.exe\",\n    \"msexchangefrontendtransport.exe\",\n    \"msexchangehmworker.exe\",\n    \"msexchangesubmission.exe\",\n    \"msiexec.exe\",\n    \"MsiExec.exe\",\n    \"noderunner.exe\",\n    \"NServiceBus.Host.exe\",\n    \"NServiceBus.Host32.exe\",\n    \"NServiceBus.Hosting.Azure.HostProcess.exe\",\n    \"OuiGui.WPF.exe\",\n    \"powershell.exe\",\n    \"powershell_ise.exe\",\n    \"pwsh.exe\",\n    \"SCCMCliCtrWPF.exe\",\n    \"ScriptEditor.exe\",\n    \"ScriptRunner.exe\",\n    \"sdiagnhost.exe\",\n    \"servermanager.exe\",\n    \"setup100.exe\",\n    \"ServiceHub.VSDetouredHost.exe\",\n    \"SPCAF.Client.exe\",\n    \"SPCAF.SettingsEditor.exe\",\n    \"SQLPS.exe\",\n    \"telemetryservice.exe\",\n    \"UMWorkerProcess.exe\",\n    \"w3wp.exe\",\n    \"wsmprovhost.exe\",\n    \"dsac.exe\",\n    \"RemoteFXvGPUDisablement.exe\",\n    \"RAMgmtUI.exe\",\n    \"taskhostw.exe\",\n    \"ClusterUpdateUI.exe\",\n    \"auditpol.exe\",\n    \"perfmon.exe\",\n    \"gpupdate.exe\",\n    \"conhost.exe\",\n    \"cmd.exe\",\n    \"Dsamain.exe\",\n    \"taskhost.exe\",\n    \"stordiag.exe\",\n    \"SpatialAudioLicenseSrv.exe\",\n    \"wsl.exe\",\n    \"WMIC.exe\",\n    \"findstr.exe\",\n    \"wlrmdr.exe\",\n    \"winrshost.exe\", \n    \"regini.exe\",\n    \"BdeUISrv.exe\") and\n   not process.thread.Ext.call_stack_summary :\n                    (\"ntdll.dll|kernelbase.dll|clr.dll|mscorlib.ni.dll|clr.dll|wa_3rd_party_host_64.exe\",\n                     \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|clr.dll|mscorlib.ni.dll|clr.dll|Unbacked|wa_3rd_party_host_32.exe\")]\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 1
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.001
+              name: PowerShell
+              reference: "https://attack.mitre.org/techniques/T1059/001/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.7.0"

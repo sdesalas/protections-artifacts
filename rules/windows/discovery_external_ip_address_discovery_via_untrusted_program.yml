@@ -1,0 +1,35 @@
+id: dfe28e03-9b0b-47f5-9753-65ed2666663f_1.0.44
+type: security-rule
+attributes:
+  description: |
+    Identifies a dropped unsigned program making a DNS request to a known public IP address lookup web service. Malwares
+    tend to perform this action to assess potential targets.
+  rule_id: dfe28e03-9b0b-47f5-9753-65ed2666663f
+  license: Elastic License v2
+  name: External IP Address Discovery via Untrusted Program
+  os_list:
+    - windows
+  version: "1.0.44"
+  query: "sequence by process.entity_id with maxspan=1m\n\n /* execution of an unsigned PE file followed by dns request to public ip discovery web services */\n\n  [process where event.action == \"start\" and not user.id : \"S-1-5-18\" and\n   not process.code_signature.trusted == true and\n   process.executable : (\"?:\\\\Users\\\\*\", \"?:\\\\ProgramData\\\\*\", \"?:\\\\Windows\\\\Temp\\\\*\", \"?:\\\\Windows\\\\Tasks\\\\*\") and\n   (process.Ext.relative_file_creation_time <= 300 or process.Ext.relative_file_name_modify_time <= 300) and\n   not process.hash.sha256 :\n                   (\"99f9ed0629c5bd62413ecbc670092da217862d21db1e1bea786a4d921289571c\",\n                    \"e739d08d695cfe2a68d4566c71d756ca25602e4c7e050e93ecbe3cdc7aa44b58\",\n                    \"f58f2d82bba0477e64f124c9e75523524927dc9c72f60e2b4f00c482cc57313b\", \n                    \"37d66cf4990eabe4cfa65e4f73d673a03cbce33d1bdf7b64f0b661f4a0872b9a\", \n                    \"7592a2943c2af6b9b84ebd1c8a577fdffdbf867286c8e97d16cc2087637c0ce0\", \n                    \"4d7574026cfd3bfb159ed7d4780f9e1462b5e8828a7ed7979a13977e4cd6611e\", \n                    \"db2c94936e13eb47fc6bff6ee9c03ee43d0a5bcb4b27df598a00c962b604f641\", \n                    \"3637ef7b9ab2b80940572a7e80102bbecb75d862ae4dcf16945cbea3368a3777\", \n                    \"c9b49399b3dec9003ae924736f7c947ca2a8821ef31797145a9c241dd91429c1\", \n                    \"73277600db6c0586fa2016001dd4a8affdf4a83f194a8afb16956cde0b79b58f\", \n                    \"89cd13792d1a14fa965e8e430a40438929de00c00e4afa2e8710b94b9d346852\", \n                    \"b19334da610a7ead290419f28bad0e51704aaadfcec56ddccaefdc3097568c18\",\n                    \"e8d970029133b8aad87ccab772d3acbc039fa392ad8f5a64f48e5921aea16f2c\",\n                    \"2d13dabb8766483884b13cbe87eb5f80f7c1f25f7692ef718611808d2c0d4a2e\",\n                    \"ea0c4140fe1f6af856e99fe90af5bd2ebd11f752811f2aa65aee028dbd0406d1\",\n                    \"c08408c64870d36a9679f11f7d0291116a0cf63a9c3de7c1a90dbeeb21f73c56\",\n                    \"7cf3535608862868067514741bf859d6f4d9b72ec8c04987e2d1f28a01fe4fd1\",\n                    \"403ebb78ec10ccbc060cd9bdb5ecd6d6d8565d468017fcaa852ffd1fa610bf83\",\n                    \"93cd90ef0ba8d8e943591c209ca14b1bf83ff33734328c356ec74c5ae090d437\",\n                    \"e63ca8cb5b49daac2f3be62065d6b199390ff187aa7d42703e4b14bfa2ec1391\",\n                    \"1621af8b21a3d3e7c5205e7e6bd6ac6e42affffc8383cb1d3f2811d53379131f\",\n                    \"bf33445f21aa6f90f1ff6bc243bf54f06b4661ca423d50731a340a3d60264e27\",\n                    \"d6cb3408f10dfd6c26233daefdba24007fc971e3dd08f4f82a505a721e19fc8b\",\n                    \"221ce70deba5b82fa9910a2f320078ee1cf773050cffaa98f9c5fbb5b45f45ee\",\n                    \"268130c19d5b8691990c07f5d133c39a8012d6f1726c8e20f0e5c7071ce9bd5d\",\n                    \"05eb7332d3711dfdd2a90c7860162e8d1a1d55ef75ba806da40fb98d60edbabd\",\n                    \"821bd11693bf4b4b2b9f3c196036e1f4902abd95fb26873ea6c43e123b8c9431\",\n                    \"0b7161d83ea48142a8593ad721a1546440fcbe09fb83cf644fecd456e3a0c38e\",\n                    \"ef1941d82bb658e614b9857493bb2e0eedf14f619d28404294628d136573b3cd\",\n                    \"96ada02d961dcfacb396a911c495073887d8bd2a0dda4b491294c573e76af750\", \n                    \"f60c5057286d6f5ca454be1f59f519e6480111868b52a70af1c3ff1b6e736f4b\")]\n  [dns where\n    dns.question.name :\n         (\n          \"ip-api.com\",\n          \"checkip.dyndns.org\",\n          \"api.ipify.org\",\n          \"whatismyip.akamai.com\",\n          \"bot.whatismyipaddress.com\",\n          \"ifcfg.me\",\n          \"ident.me\",\n          \"ipof.in\",\n          \"ip.tyk.nu\",\n          \"icanhazip.com\",\n          \"curlmyip.com\",\n          \"wgetip.com\",\n          \"eth0.me\",\n          \"ipecho.net\",\n          \"ip.appspot.com\",\n          \"api.myip.com\",\n          \"geoiptool.com\",\n          \"api.2ip.ua\",\n          \"api.ip.sb\",\n          \"ipinfo.io\",\n          \"checkip.amazonaws.com\",\n          \"wtfismyip.com\",\n          \"iplogger.*\",\n          \"freegeoip.net\",\n          \"freegeoip.app\",\n          \"ipinfo.io\",\n          \"geoplugin.net\",\n          \"myip.dnsomatic.com\",\n          \"www.geoplugin.net\",\n          \"api64.ipify.org\",\n          \"ip4.seeip.org\",\n          \"*.geojs.io\",\n          \"*portmap.io\",\n          \"api.2ip.ua\",\n          \"api.db-ip.com\",\n          \"geolocation-db.com\",\n          \"httpbin.org\",\n          \"myip.opendns.com\",\n          \"ipwho.is\"\n         )\n         ]\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+      tree: true
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1016
+          name: System Network Configuration Discovery
+          reference: "https://attack.mitre.org/techniques/T1016/"
+      tactic:
+        id: TA0007
+        name: Discovery
+        reference: "https://attack.mitre.org/tactics/TA0007/"
+  internal:
+    min_endpoint_version: "8.4.0"

@@ -1,0 +1,40 @@
+id: "8e88d216-af7a-4f5c-8155-fa7d2be03987_1.0.21"
+type: security-rule
+attributes:
+  description: |
+    Detects the execution of a process in a suspicious location by the Terminal application. Terminal will, often times, be
+    granted full disk access by users and administrators who use it. Threat actors are aware of this and will abuse it in
+    order to get their payloads to execute with the same context as Terminal, providing their payload full disk access. They
+    do this by modifying shell profiles (e.g .zshrc, bashrc, etc.) that point to and execute their payload then when
+    Terminal initiates those profiles the payload gets executed within the same context as Terminal.
+  rule_id: "8e88d216-af7a-4f5c-8155-fa7d2be03987"
+  license: Elastic License v2
+  name: Suspicious Terminal Child Process Execution
+  os_list:
+    - macos
+  reference:
+    - "https://cedowens.medium.com/give-me-some-macos-context-c13aecbd4c5b"
+  version: "1.0.21"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and \n user.name == \"root\" and \n process.parent.name like~ \"terminal\" and\n process.name like~ (\"terminal\", \"zsh\", \"bash\", \"sh\", \"tclsh*\") and\n process.args == \"-c\" and\n process.args like~ \n               (\"/private/tmp/*\", \n                \"/var/tmp/*\", \n                \"/tmp/*\", \n                \"/var/folders/*\", \n                \"/Users/Shared/*\", \n                \"/Library/Containers/*\", \n                \"/var/root/*\", \n                \"/Library/WebServer/*\", \n                \"/Library/Graphics/*\",\n                \"/Library/Fonts/*\", \n                \"/usr/local/bin/*\", \n                \"/Users/*/Library/*\", \n                \"/Users/*/Applications/*\")\n"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.10.2"

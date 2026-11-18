@@ -1,0 +1,36 @@
+id: e26e47b7-ec35-4060-8b35-32d01fae159e_1.0.3
+type: security-rule
+attributes:
+  description: |
+    Detects curl commands using the "cur1" user agent string, associated with BlueNoroff/Lazarus Group campaigns. This
+    deliberate misspelling is a reliable indicator of nation-state attacks targeting cryptocurrency sectors.
+  rule_id: e26e47b7-ec35-4060-8b35-32d01fae159e
+  license: Elastic License v2
+  name: Suspicious Curl User Agent
+  os_list:
+    - macos
+  reference:
+    - "https://www.huntress.com/blog/inside-bluenoroff-web3-intrusion-analysis"
+  version: "1.0.3"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and process.name == \"curl\" and \n (process.args like~ \"cur1-*\" or process.command_line : \"*cur1-*\")\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1105
+          name: Ingress Tool Transfer
+          reference: "https://attack.mitre.org/techniques/T1105/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.16.0"

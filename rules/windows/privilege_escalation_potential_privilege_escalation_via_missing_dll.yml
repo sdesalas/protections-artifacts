@@ -1,0 +1,48 @@
+id: a2a3d803-5c25-43cc-84b9-a4ae2a4dab27_1.0.42
+type: security-rule
+attributes:
+  description: |
+    Identifies the loading of a non Microsoft signed DLL that is missing on a default Windows installation (phantom DLL) or
+    one that can be loaded from a different location by a native Windows process. This may be abused to persist or elevate
+    privileges via privileged file write vulnerabilities.
+  rule_id: a2a3d803-5c25-43cc-84b9-a4ae2a4dab27
+  license: Elastic License v2
+  name: Potential Privilege Escalation via Missing DLL
+  os_list:
+    - windows
+  reference:
+    - "http://remoteawesomethoughts.blogspot.com/2019/05/windows-10-task-schedulerservice.html"
+    - "http://waleedassar.blogspot.com/2013/01/wow64logdll.html"
+    - "https://github.com/rapid7/metasploit-framework/blob/5863ff7e357af1634f5b370e811d647a9c999158/modules/exploits/windows/local/cve_2020_17136.rb#L192"
+    - "https://googleprojectzero.blogspot.com/2018/04/windows-exploitation-tricks-exploiting.html"
+    - "https://itm4n.github.io/windows-dll-hijacking-clarified/"
+    - "https://windows-internals.com/faxing-your-way-to-system/"
+    - "https://www.elastic.co/security-labs/Hunting-for-Suspicious-Windows-Libraries-for-Execution-and-Evasion"
+    - "https://www.elastic.co/security-labs/invisible-miners-unveiling-ghostengine"
+  version: "1.0.42"
+  query: "library where\n   user.id : \"S-1-5-18\" and (dll.code_signature.trusted == false or dll.code_signature.exists == false) and \n   (dll.Ext.relative_file_creation_time <= 172800 or dll.Ext.relative_file_name_modify_time <= 172800) and \n     (\n       dll.name :\n         (\"wlbsctrl.dll\",\n          \"WptsExtensions.dll\",\n          \"Tsmsisrv.dll\",\n          \"TSVIPSrv.dll\",\n          \"Msfte.dll\",\n          \"wow64log.dll\",\n          \"WindowsCoreDeviceInfo.dll\",\n          \"phoneinfo.dll\",\n          \"EdgeGdi.dll\",\n          \"cdpsgshims.dll\",\n          \"diagtrack_win.dll\",\n          \"wlanhlp.dll\",\n          \"healthapi.dll\",\n          \"prntvpt.dll\",\n          \"SprintCSP.dll\") or\n       dll.path : (\"?:\\\\Windows\\\\System32\\\\Ualapi.dll\",\n                   \"?:\\\\Windows\\\\SysWOW64\\\\Ualapi.dll\",\n                   \"?:\\\\Windows\\\\System\\\\Ualapi.dll\",\n                   \"?:\\\\Windows\\\\Ualapi.dll\",\n                   \"?:\\\\Windows\\\\System32\\\\oci.dll\",\n                   \"?:\\\\Windows\\\\System32\\\\spool\\\\drivers\\\\x64\\\\PrintConfig.dll\",\n                   \"?:\\\\windows\\\\Ualapi.dll\",\n                   \"?:\\\\windows\\\\wbemcomn.dll\",\n                   \"?:\\\\Windows\\\\oci.dll\",\n                   \"?:\\\\windows\\\\System32\\\\Wbem\\\\Ualapi.dll\",\n                   \"?:\\\\windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\wbemcomn.dll\",\n                   \"?:\\\\windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\Ualapi.dll\",\n                   \"?:\\\\windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\oci.dll\",\n                   \"?:\\\\Python??\\\\wbemcomn.dll\",\n                   \"?:\\\\Python??\\\\Ualapi.dll\",\n                   \"?:\\\\Python??\\\\oci.dll\",\n                   \"?:\\\\windows\\\\System32\\\\OpenSSH\\\\wbemcomn.dll\",\n                   \"?:\\\\windows\\\\System32\\\\OpenSSH\\\\oci.dll\",\n                   \"?:\\\\windows\\\\System32\\\\OpenSSH\\\\Ualapi.dll\", \n                   \"?:\\\\Windows\\\\System32\\\\wbem\\\\wbemcomn.dll\", \n                   \"?:\\\\Windows\\\\SysWOW64\\\\wbem\\\\wbemcomn.dll\")\n     ) and\n     not dll.path : \n               (\"?:\\\\Windows\\\\System32\\\\prntvpt.dll\", \n                \"?:\\\\Windows\\\\System32\\\\wlanhlp.dll\", \n                \"?:\\\\Windows\\\\SysWOW64\\\\prntvpt.dll\", \n                \"?:\\\\Windows\\\\WinSxS\\\\*.dll\") and \n     not (dll.pe.imphash : \"a9ab204cf2b4a1903b3fba3c920bd357\" and dll.name : \"Ualapi.dll\")\n"
+  min_endpoint_version: "8.4.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+          subtechnique:
+            - id: T1574.001
+              name: DLL
+              reference: "https://attack.mitre.org/techniques/T1574/001/"
+      tactic:
+        id: TA0004
+        name: Privilege Escalation
+        reference: "https://attack.mitre.org/tactics/TA0004/"
+  internal:
+    min_endpoint_version: "8.4.0"

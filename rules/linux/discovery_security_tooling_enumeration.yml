@@ -1,0 +1,52 @@
+id: "9de52bd9-0537-4b2c-a3ba-34c3c3ffd855_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Detects a sequence where the same parent process executes several distinct "systemctl", "service", "chkconfig", "grep",
+    "egrep", or "pgrep" commands to check for known security tooling within 3 seconds. Repeated identical command lines are
+    de-duplicated, helping identify rapid multi-command security software discovery rather than a single enumeration
+    attempt.
+  rule_id: "9de52bd9-0537-4b2c-a3ba-34c3c3ffd855"
+  license: Elastic License v2
+  name: Security Tooling Enumeration
+  os_list:
+    - linux
+  version: "1.0.5"
+  query: "sequence by process.parent.entity_id with maxspan=3s\n  [process where event.type == \"start\" and event.action == \"exec\" and process.parent.executable != null and\n  (\n    process.name in (\"service\", \"chkconfig\", \"grep\", \"egrep\", \"pgrep\") or\n    process.name == \"systemctl\" and process.args in (\"is-enabled\", \"show\", \"is-active\", \"status\", \"list-units\")\n  ) and\n  process.args in (\n    \"avast\", \"bdsec\", \"cylancesvc\", \"cyoptics\", \"cbsensor\", \"cpla\", \"itsm\", \"cloudmonitor\", \"falcon-sensor\", \"cybereason-sensor\",\n    \"elastic-agent\", \"sraagent\", \"eraagent\", \"eea\", \"eea-user-agent\", \"xagt\", \"keeperx\", \"kesl\", \"klnagent64\", \"kesl-supervisor\",\n    \"kics\", \"kess\", \"rocketcyber\", \"limacharlie\", \"lr-agent.logrhythm\", \"MFEcma\", \"mdatp\", \"osqueryd\", \"traps_pmd\", \"ir_agent\",\n    \"armor\", \"sophoslinuxsensor\", \"sophos-spl\", \"otelcol-sumo\", \"ds_agent\", \"titanagent\", \"taniumclient\", \"oneavd\", \"mbdaemon\",\n    \"wazuh-agent\", \"emit_scand_service\", \"f-secure-linuxsecurity-activate\"\n  ) and not (\n    process.parent.executable in (\n      \"/opt/puppetlabs/puppet/bin/ruby\", \"/opt/puppetlabs/puppet/bin/puppet\", \"/opt/sophos-spl/base/bin/SulDownloader\",\n      \"/usr/local/manageengine/uems_agent/bin/dctaskengine\", \"/usr/bin/newrelic-infra\", \"/usr/bin/puppet\",\n      \"/usr/lib64/nagios/plugins/check_agents\", \"/opt/chef/bin/chef-client\", \"/opt/chef/embedded/bin/ruby\",\n      \"/usr/local/manageengine/uems_agent/bin/dcinventory\", \"/opt/scripts/puppet/puppetrun\", \"/usr/bin/chef-client\"\n    ) or\n    process.parent.executable like (\n      \"/opt/sophos-spl/base/bin/SulDownloader.*\", \"/opt/rapid7/ir_agent/components/bootstrap/*/bootstrap_upgrader\",\n      \"/usr/local/rapid7/ir_agent/components/bootstrap/*/bootstrap_upgrader\", \"/tmp/newroot/opt/chef/bin/chef-client\",\n      \"/usr/lib/venv-salt-minion/bin/python.original\", \"/etc/checkpoint/common/install_offline.sh\",\n      \"/tmp/newroot/usr/local/manageengine/uems_agent/bin/dctaskengine\",\n      \"/proc/self/fd/*/usr/local/manageengine/uems_agent/bin/dctaskengine\",\n      \"/host/opt/puppetlabs/puppet/bin/ruby\"\n    ) or \n    process.parent.args like (\n      \"/usr/lib/nagios/plugins/check_agents\", \"/usr/bin/puppet\", \"/home/*/.ansible/tmp/ansible-tmp-*/AnsiballZ_*.py\",\n      \"/root/.ansible/tmp/ansible-tmp-*/AnsiballZ_*.py\", \"/var/tmp/rpm-tmp*\", \"/var/lib/dpkg/info/cybereason-sensor.prerm\",\n      \"/var/lib/dpkg/info/mdatp.postinst\"\n    ) or\n    (process.parent.name like \"python*\" and process.parent.command_line like \"*mitogen*\") or\n    (process.parent.executable like \"/usr/bin/python*\" and process.args == \"otelcol-sumo\" and process.args == \"show\") or\n    (\n      (\n        process.working_directory == \"/var/ossec\" or\n        process.parent.executable in (\"/var/lib/dpkg/tmp.ci/preinst\", \"/var/lib/dpkg/info/wazuh-agent.prerm\")\n      ) and\n      process.args == \"wazuh-agent\"\n    ) and not process.args == \"disable\"\n  )] as event0\n  [process where event.type == \"start\" and event.action == \"exec\" and\n  (\n    process.name in (\"service\", \"chkconfig\", \"grep\", \"egrep\", \"pgrep\") or\n    process.name == \"systemctl\" and process.args in (\"is-enabled\", \"show\", \"is-active\", \"status\", \"list-units\")\n  ) and\n  not startswith~(process.command_line, event0.process.command_line) and\n  process.args in (\n    \"avast\", \"bdsec\", \"cylancesvc\", \"cyoptics\", \"cbsensor\", \"cpla\", \"itsm\", \"cloudmonitor\", \"falcon-sensor\", \"cybereason-sensor\",\n    \"elastic-agent\", \"sraagent\", \"eraagent\", \"eea\", \"eea-user-agent\", \"xagt\", \"keeperx\", \"kesl\", \"klnagent64\", \"kesl-supervisor\",\n    \"kics\", \"kess\", \"rocketcyber\", \"limacharlie\", \"lr-agent.logrhythm\", \"MFEcma\", \"mdatp\", \"osqueryd\", \"traps_pmd\", \"ir_agent\",\n    \"armor\", \"sophoslinuxsensor\", \"sophos-spl\", \"otelcol-sumo\", \"ds_agent\", \"titanagent\", \"taniumclient\", \"oneavd\", \"mbdaemon\",\n    \"wazuh-agent\", \"emit_scand_service\", \"f-secure-linuxsecurity-activate\"\n  )] as event1\n  [process where event.type == \"start\" and event.action == \"exec\" and\n  (\n    process.name in (\"service\", \"chkconfig\", \"grep\", \"egrep\", \"pgrep\") or\n    process.name == \"systemctl\" and process.args in (\"is-enabled\", \"show\", \"is-active\", \"status\", \"list-units\")\n  ) and\n  not (startswith~(process.command_line, event0.process.command_line) or startswith~(process.command_line, event1.process.command_line)) and\n  process.args in (\n    \"avast\", \"bdsec\", \"cylancesvc\", \"cyoptics\", \"cbsensor\", \"cpla\", \"itsm\", \"cloudmonitor\", \"falcon-sensor\", \"cybereason-sensor\",\n    \"elastic-agent\", \"sraagent\", \"eraagent\", \"eea\", \"eea-user-agent\", \"xagt\", \"keeperx\", \"kesl\", \"klnagent64\", \"kesl-supervisor\",\n    \"kics\", \"kess\", \"rocketcyber\", \"limacharlie\", \"lr-agent.logrhythm\", \"MFEcma\", \"mdatp\", \"osqueryd\", \"traps_pmd\", \"ir_agent\",\n    \"armor\", \"sophoslinuxsensor\", \"sophos-spl\", \"otelcol-sumo\", \"ds_agent\", \"titanagent\", \"taniumclient\", \"oneavd\", \"mbdaemon\",\n    \"wazuh-agent\", \"emit_scand_service\", \"f-secure-linuxsecurity-activate\"\n  )]\n"
+  min_endpoint_version: "8.4.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.entity_id
+      state: 2
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 2
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1518
+          name: Software Discovery
+          reference: "https://attack.mitre.org/techniques/T1518/"
+          subtechnique:
+            - id: T1518.001
+              name: Security Software Discovery
+              reference: "https://attack.mitre.org/techniques/T1518/001/"
+      tactic:
+        id: TA0007
+        name: Discovery
+        reference: "https://attack.mitre.org/tactics/TA0007/"
+  internal:
+    min_endpoint_version: "8.4.0"

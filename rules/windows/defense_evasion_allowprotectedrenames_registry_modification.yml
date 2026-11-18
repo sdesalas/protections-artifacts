@@ -1,0 +1,43 @@
+id: "6dad397a-7e26-4c5b-9a24-d19016f2ad03_1.0.7"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to enable the modification of Trusted Installer protected resources via PendingFileRename operation.
+    Malware may change this setting to hijack existing resources for execution and persistence.
+  rule_id: "6dad397a-7e26-4c5b-9a24-d19016f2ad03"
+  license: Elastic License v2
+  name: AllowProtectedRenames Registry Modification
+  os_list:
+    - windows
+  reference:
+    - "https://qtechbabble.wordpress.com/2020/06/26/use-pendingfilerenameoperations-registry-key-to-automatically-delete-a-file-on-reboot/"
+  version: "1.0.7"
+  query: "registry where process.name != null and\n registry.value : \"AllowProtectedRenames\" and registry.data.strings : \"1\" and \n not process.executable : (\"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\", \"\\\\Device\\\\Mup\\\\*\\\\uninstall_flash_player.exe\", \"?:\\\\Windows\\\\*\\\\Macromed\\\\Temp\\\\*\\\\InstallFlashPlayer.exe\") and\n not (process.code_signature.status : \"trusted\" and not process.code_signature.subject_name : \"Microsoft*\")\n"
+  min_endpoint_version: "8.1.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1112
+          name: Modify Registry
+          reference: "https://attack.mitre.org/techniques/T1112/"
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.1.0"

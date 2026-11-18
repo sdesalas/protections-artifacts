@@ -1,0 +1,40 @@
+id: "877c6bd9-8df1-4a15-aa97-2a091731b15d_1.0.33"
+type: security-rule
+attributes:
+  description: |
+    Identifies the execution of a suspicious MsiExec child process. Adversaries may abuse Windows Installers for initial
+    access and delivery of malware.
+  rule_id: "877c6bd9-8df1-4a15-aa97-2a091731b15d"
+  license: Elastic License v2
+  name: Suspicious MsiExec Child Process
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/spring-cleaning-with-latrodectus"
+  version: "1.0.33"
+  query: "process where event.action == \"start\" and\n   not user.id : \"S-1-5-18\" and\n\n   (process.parent.name : \"msiexec.exe\" or\n    process.parent.executable : \"?:\\\\WINDOWS\\\\Installer\\\\MSI*.tmp\") and\n\n  (\n    (process.name : \"rundll32.exe\" and process.args : (\"?:\\\\Users\\\\*\\\\AppData\\\\*\", \"?:\\\\ProgramData\\\\*\", \"?:\\\\Users\\\\Public\\\\*\", \"-e\")) or\n\n    (process.parent.args : \"/DontWait\" and process.parent.args : \"/HideWindow\") or\n\n    (process.name : \"cmd.exe\" and\n     process.command_line : (\"*start*microsoft-edge:*\", \"*reg add*\", \"*fodhelper.exe*\", \"*CurrentVersion\\\\Run*\", \"*set *&set*\")) or\n\n\n    process.executable : (\"?:\\\\Users\\\\*\\\\Documents\\\\*\", \"?:\\\\Users\\\\Public\\\\*\", \"?:\\\\ProgramData\\\\*\", \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\*\") or\n\n    process.name : (\"wscript.exe\", \"cscript.exe\") or\n\n    (process.name : \"powershell.exe\" and\n     process.command_line :\n             (\"*Software\\\\Classes\\\\CLSID*\", \"*Reflection.Assembly*\", \"*::Load*\", \n              \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\pss*.tmp.ps1\", \"* -enc *\", \"* -ec *\", \"*Add-MpPreference*\",\n              \"*WebClient*\", \"*DownloadFile*\", \"*DownloadString*\", \"*iex)*\", \"*-encodedCommand*\", \"*HwAaQBlAHgA*\")) or\n\n    (process.name : \"powershell.exe\" and process.parent.name : \"msiexec.exe\" and process.parent.args : \"/v\") or\n\n    /* AteraAgent RMM abused by threat actors -  */\n    (process.pe.original_file_name == \"AteraAgent.exe\" and process.args : \"/IntegratorLogin=*@*\" and process.args : \"/AccountId=??*\") or\n\n    (process.pe.original_file_name : \"WMIC.exe\" and process.args : \"MSFT_MpPreference\")\n\n    ) and\n\n    /* noisy FP patterns */\n    not (process.name : \"rundll32.exe\" and process.command_line : (\"*zzzzInvokeManagedCustomActionOutOfProc*\", \"*MSI*.tmp,WiseElevateRun*\")) and\n\n    not (process.name : (\"wscript.exe\", \"cscript.exe\") and\n         process.args : (\"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\", \"IsHTTPSListenerPresent.vbs\")) and\n\n    not (process.executable : \"?:\\\\ProgramData\\\\*\" and (process.Ext.token.integrity_level_name : \"high\" or process.args : \"*uninstall*\")) and\n\n    not (process.executable : \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\*\" and (process.code_signature.exists == true or process.Ext.token.integrity_level_name : \"high\")) and\n\n    not (process.name : \"powershell.exe\" and\n         process.parent.command_line :\n               (\"*\\\\AppData\\\\Roaming\\\\Browser Extension\\\\*\",\n                \"*\\\\AppData\\\\Roaming\\\\Browser Assistant\\\\*\",\n                \"*\\\\AppData\\\\Roaming\\\\BBWC\\\\*\",\n                \"*$env:APPDATA*/Browser Extension/*\")) and \n                \n    not (process.name : \"regsvr32.exe\" and process.args :  \"/i:user\" and process.args : \"/n\") and\n    not (process.executable : \"?:\\\\ProgramData\\\\*\\\\*\\\\*\" and process.code_signature.trusted == true) and\n    not (process.name : \"cscript.exe\" and process.command_line : \"cscript IsHTTPSListenerPresent.vbs\") and\n    not process.pe.imphash in (\"693eeec0e40605ff41c9cee4be66760e\", \"ccb9e4bcad9dd001d25d6220ffcab2dc\") and\n    not process.hash.sha256 :\n                 (\"d09e299150f4a9904cfbedff7a2478ce16b9c1ea6a5bc2fba0bcb2b1f7a845d0\",\n                  \"73634c154e121ea172dce96da629f50aa8eb69f72922f5ff14d1331ea281f105\",\n                  \"7f7635389553b7441a27a2b44988a56155f79320445923e73e59c91ea521f8d2\",\n                  \"2fd626d4ade59166e3db27ee6f24b24040498928840d88e293edd92c503aca8d\",\n                  \"530e754c40d38fab5e3f802380f202ca7e1c675ea25b32dfe6d419403d7b0e5b\",\n                  \"dd1854024eb375e23c42745b1a5848734a262aa5c31571112a0b824c3729a638\",\n                  \"525b993f89500abc33cab311e453beb2841d2335eb787a3753f7ff092cca195a\",\n                  \"ba8c1a434b2cc355fc2f005639af36729f32fc91ff1f278bcded65428cad0126\",\n                  \"7c33270e54646ba7cbda98157a052586812d004670b02f920b285e4eb42507b5\",\n                  \"3f59a2799dc6aa6cdddbc62e169fad7e7dd282bffba3538ed2594e3a8d6c1a05\",\n                  \"54b1f519d64469ffcb2c9f417dc9b46e16f44a19522236122741a9df7a877f0a\",\n                  \"ec4a6b16df94b1c78b48796d7f624fc19253140569ccb51dfb7f6771d2b0e53d\",\n                  \"0f727129cd58c2291dbccac8930ad80c28b6d19ebfa4c5f91deb4c00b7c75774\",\n                  \"2aee9f92793ccd46579951e44dc8793045b50e1c23824681a64f653bdae58973\",\n                  \"801670c7b9d17bd3967c38ad74b5caf0d577fe21819462f54529bf3898c58c94\") and\n   not (process.name : \"rundll32.exe\" and\n        process.args : (\"printui.dll,PrintUIEntry\",\n                        \"C:\\\\ProgramData\\\\FastTrack Software\\\\Admin By Request\\\\ShellHelper??.dll,#1\",\n                        \"C:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\MSI*.tmp,GetOsVersion\")) and\n   not (process.name : \"regsvr32.exe\" and process.args : \"?:\\\\ProgramData\\\\LEAP Office\\\\Cloud\\\\Extras\\\\Automation Extras\\\\LEAPRedemption64.dll\") and\n   not (process.name : \"cmd.exe\" and process.args : \"del\" and process.args : \"/f\") and\n   not (process.name : \"cmd.exe\" and process.args : \"C:\\\\Program\") and\n   not (process.name : \"powershell.exe\" and\n        process.command_line : (\"*Web Client\\\\Modules\\\\NAVWebClientManagement\\\\NAVWebClientManagement.psm1*\", \"*https://go.microsoft.com/fwlink/p/?LinkId=*\")) and\n   not (process.name : (\"powershell.exe\", \"cmd.exe\") and process.args : (\"?:\\\\Program Files\\\\*\", \"?:\\\\Program Files (x86)\\\\*\")) and\n   not (process.code_signature.subject_name in (\"Dassault Systemes SolidWorks Corp.\", \"Turning Technologies, LLC\") and process.code_signature.trusted == true) and\n   not (process.name : \"powershell.exe\" and process.args : \"Get-ChildItem -Path . -Exclude *\")\n"
+  min_endpoint_version: "8.6.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1218
+          name: System Binary Proxy Execution
+          reference: "https://attack.mitre.org/techniques/T1218/"
+          subtechnique:
+            - id: T1218.007
+              name: Msiexec
+              reference: "https://attack.mitre.org/techniques/T1218/007/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.6.0"

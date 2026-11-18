@@ -1,0 +1,51 @@
+id: a412fd9b-2a06-49ff-a073-8eb313c2d930_1.0.30
+type: security-rule
+attributes:
+  description: Identifies attempts to unload the Elastic Endpoint Security kernel extension via the kextunload command.
+  rule_id: a412fd9b-2a06-49ff-a073-8eb313c2d930
+  license: Elastic License v2
+  name: Elastic Endpoint Security Kernel Extension Unload
+  os_list:
+    - macos
+  version: "1.0.30"
+  query: |
+    process where event.type == "start" and
+     process.name == "kextunload" and process.args like~ ("*.EndpointSecurity", "EndpointSecurity.kext")
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.006
+              name: Kernel Modules and Extensions
+              reference: "https://attack.mitre.org/techniques/T1547/006/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.2"

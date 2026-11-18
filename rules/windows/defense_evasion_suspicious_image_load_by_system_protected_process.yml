@@ -1,0 +1,42 @@
+id: "5007b805-0cee-44e8-b807-22c95d5d2998_1.0.14"
+type: security-rule
+attributes:
+  description: |
+    Identifies when a System protected process loads a library from a network file share. This may indicate an attempt to
+    bypass PPL protection and inject malicious code into a protected process or disable security software.
+  rule_id: "5007b805-0cee-44e8-b807-22c95d5d2998"
+  license: Elastic License v2
+  name: Suspicious Image Load by System Protected Process
+  os_list:
+    - windows
+  reference:
+    - "https://learn.microsoft.com/en-us/windows/win32/services/protecting-anti-malware-services-"
+    - "https://github.com/gabriellandau/PPLFault"
+    - "https://www.blackhat.com/asia-23/briefings/schedule/#ppldump-is-dead-long-live-ppldump-31052"
+    - "https://www.elastic.co/security-labs/forget-vulnerable-drivers-admin-is-all-you-need"
+  version: "1.0.14"
+  query: "sequence by process.entity_id\n [process where event.action == \"start\" and process.Ext.protection : \"PsProtected*\" and \n  not (process.executable : \"?:\\\\Windows\\\\Microsoft.NET\\\\Framework\\\\*\\\\mscorsvw.exe\" and \n       process.parent.executable : \"?:\\\\Windows\\\\Microsoft.NET\\\\Framework*\\\\ngen.exe\" and \n       process.Ext.protection : \"PsProtectedSignerCodeGen-Light\")]\n [library where dll.path : (\"\\\\Device\\\\Mup\\\\*\", \"\\\\\\\\127.*\\\\*\")]\n  until [process where event.action:\"end\"]\n"
+  min_endpoint_version: "8.7.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1211
+          name: Exploitation for Defense Evasion
+          reference: "https://attack.mitre.org/techniques/T1211/"
+        - id: T1574
+          name: Hijack Execution Flow
+          reference: "https://attack.mitre.org/techniques/T1574/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.7.0"

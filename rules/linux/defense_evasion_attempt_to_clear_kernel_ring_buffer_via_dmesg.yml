@@ -1,0 +1,49 @@
+id: "116d477e-8dd3-4de6-bbfd-9c19ca37fb8b_1.0.2"
+type: security-rule
+attributes:
+  description: |
+    Monitors for the deletion of the kernel ring buffer events through dmesg. Attackers may clear kernel ring buffer events
+    to evade detection after installing a Linux kernel module (LKM). This activity is commonly observed by intrusions that
+    leverage kernel-level rootkits to maintain persistence on a compromised host.
+  rule_id: "116d477e-8dd3-4de6-bbfd-9c19ca37fb8b"
+  license: Elastic License v2
+  name: Attempt to Clear Kernel Ring Buffer via Dmesg
+  os_list:
+    - linux
+  version: "1.0.2"
+  query: |
+    process where event.type == "start" and event.action == "exec" and
+    process.name == "dmesg" and process.args in ("-c", "-C", "--clear", "--read-clear") and
+    not process.parent.executable == "/tmp/newroot/usr/bin/sudo"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1070
+          name: Indicator Removal
+          reference: "https://attack.mitre.org/techniques/T1070/"
+          subtechnique:
+            - id: T1070.002
+              name: Clear Linux or Mac System Logs
+              reference: "https://attack.mitre.org/techniques/T1070/002/"
+        - id: T1562
+          name: Impair Defenses
+          reference: "https://attack.mitre.org/techniques/T1562/"
+          subtechnique:
+            - id: T1562.001
+              name: Disable or Modify Tools
+              reference: "https://attack.mitre.org/techniques/T1562/001/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "7.15.0"

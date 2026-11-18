@@ -1,0 +1,33 @@
+id: "647e485d-4850-43da-9407-7618c9b23843_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to modify the memory protection from read only to read and execute, malware may use this approach to
+    avoid leaving suspicious allocation properties.
+  rule_id: "647e485d-4850-43da-9407-7618c9b23843"
+  license: Elastic License v2
+  name: Memory Protection from Read to Execute
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/doubling-down-etw-callstacks"
+  version: "1.0.5"
+  query: "api where process.Ext.api.name == \"VirtualProtect\" and\n  process.Ext.api.parameters.protection == \"R-X\" and process.Ext.api.parameters.protection_old == \"R--\" and\n  process.thread.Ext.call_stack_final_user_module.protection_provenance != \"Kernel\" and\n  process.Ext.api.metadata.target_address_name != \"Unknown\" and process.Ext.api.parameters.size != 64 and\n  process.thread.Ext.call_stack_final_user_module.name != \"Unknown\" and\n  process.thread.Ext.call_stack_summary != null and process.thread.Ext.call_stack_final_user_module.name != null and\n  process.thread.Ext.call_stack_final_user_module.protection_provenance != \"Unknown\" and\n  not (process.thread.Ext.call_stack_summary == \"ntdll.dll|Unbacked\" and process.thread.Ext.call_stack_final_user_module.name == \"Unbacked\") and \n  not (process.thread.Ext.call_stack_final_user_module.name == \"Unbacked\" and process.thread.Ext.call_stack_final_user_module.protection_provenance == \"Unbacked\") and \n  not (process.thread.Ext.call_stack_final_user_module.name == \"Undetermined\" and process.Ext.api.behaviors == \"truncated_stack\") and \n  not (process.Ext.api.parameters.size == 4096 and\n       process.thread.Ext.call_stack_final_user_module.path like \"c:\\\\windows\\\\winsxs\\\\temp\\\\pendingdeletes\\\\$$deleteme*\") and\n  not (process.thread.Ext.call_stack_final_user_module.path in (\"c:\\\\program files\\\\bold\\\\agent\\\\bold.exe\", \"c:\\\\program files\\\\bold\\\\agent\\\\boldengine.exe\") and user.id == \"S-1-5-18\") and \n  not process.thread.Ext.call_stack_final_user_module.path == \"c:\\\\windows\\\\syswow64\\\\cyinjct.dll\" and\n  process.Ext.api.summary in (\"VirtualProtect( cryptsp.dll, 0x108, R-X, R-- )\", \"VirtualProtect( crypt32.dll, 0x108, R-X, R-- )\") and\n  process.thread.Ext.call_stack_final_user_module.hash.sha256 in\n                                        (\"6722b52ed34bbf1c1cbb2215130b725b66fd9bb2abc7ac7b9281ba9643b17498\",\n                                         \"87628b8c8fba57a55383999de84a4f1a4ae6e37d735bb785bc29abba4d9ba701\",\n                                         \"be636d9eb262f8db59bf793c35ba0b7fe25091f5351ca25f9fe5a90493b151a1\",\n                                         \"bb6c1bae7516b2d61e7cbf94c10ec9287fcaab34550dec268d99cd605c24f0d3\",\n                                         \"edd811ce347d68ebde7565a618cf93494f8b57e94d875c1717046a55c6865e1c\", \n                                         \"2ab9a610db6fba4d41c6b9e971588fec0fbb47e19f1590bc04696cb2a80fc447\", \n                                         \"0db3072535e19bb206277c726497f0dae6066b620a39c4502d8c0060032feaa6\", \n                                         \"8d328590dc4cadfb45e04fc1476e0989e98fffd6b97dc47f91b6a105a53dd221\", \n                                         \"466970a44c0998f43b350d850615ec01bb9ad0ad1d0991883f69c31d61563f8c\",\n                                         \"1e8b5406e30074784409cf2d8d65dca376d7c51cea2458a99a635b087a8f96a5\") and\n  not _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry, $entry.trusted == true) and\n  not process.thread.Ext.call_stack_final_user_module.protection_provenance_path like\n                                     (\"c:\\\\program files (x86)\\\\common files\\\\microsoft shared\\\\office??\\\\mso*.dll\",\n                                      \"c:\\\\windows\\\\assembly\\\\nativeimages*.ni.dll\",\n                                      \"c:\\\\windows\\\\system32\\\\spool\\\\drivers\\\\x64\\\\3\\\\ricoh_drv\\\\*.dll\") and\n  not _arraysearch(process.thread.Ext.call_stack, $entry,\n                   $entry.symbol_info like (\"c:\\\\windows\\\\sys?????\\\\cyinjct.dll*\", \n                                            \"c:\\\\windows\\\\sys?????\\\\user32.dll!DispatchMessage*\",\n                                            \"c:\\\\windows\\\\sys?????\\\\ntdll.dll!LdrResolveDelayLoadedAPI*\",\n                                            \"c:\\\\windows\\\\sys?????\\\\ntdll.dll!LdrLoadDll*\",\n                                            \"c:\\\\windows\\\\sys?????\\\\ntdll.dll!LdrShutdownThread*\")) and\n  not _arraysearch(process.thread.Ext.call_stack, $entry,\n                   $entry.callsite_trailing_bytes == \"85c00f85fc000000448b4df0488d45f04c8d45e84889442420488d55e04883c9ff41ffd685c00f85d8000000813e504500000f85cc0000008b462885c00f84c1\")\n"
+  min_endpoint_version: "8.14.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.14.2"

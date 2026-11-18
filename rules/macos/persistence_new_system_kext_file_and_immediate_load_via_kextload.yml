@@ -1,0 +1,52 @@
+id: de869aa1-c63a-451e-a953-7069ec39ba60_1.0.19
+type: security-rule
+attributes:
+  description: |
+    Detects the use of the cp or mv binaries to add a kext file in the System extensions directory and then immediately load
+    it via the kextload utility. Threat actors have created malicious kernel extensions and attempted to load them on
+    compromised systems in order to bypass defences and manipulate their presence on the machine.
+  rule_id: de869aa1-c63a-451e-a953-7069ec39ba60
+  license: Elastic License v2
+  name: New System Kext File and Immediate Load via KextLoad
+  os_list:
+    - macos
+  version: "1.0.19"
+  query: "sequence by process.parent.pid with maxspan=20s\n[process where event.type == \"start\" and event.action == \"exec\" and \n    process.name in (\"mv\", \"cp\") and\n    process.args like \"/System/Library/Extensions/*.kext\"]\n[process where event.type == \"start\" and event.action == \"exec\" and \n    process.name == \"kextload\"]\n"
+  min_endpoint_version: "8.10.2"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.004
+              name: Unix Shell
+              reference: "https://attack.mitre.org/techniques/T1059/004/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1547
+          name: Boot or Logon Autostart Execution
+          reference: "https://attack.mitre.org/techniques/T1547/"
+          subtechnique:
+            - id: T1547.006
+              name: Kernel Modules and Extensions
+              reference: "https://attack.mitre.org/techniques/T1547/006/"
+      tactic:
+        id: TA0003
+        name: Persistence
+        reference: "https://attack.mitre.org/tactics/TA0003/"
+  internal:
+    min_endpoint_version: "8.10.2"

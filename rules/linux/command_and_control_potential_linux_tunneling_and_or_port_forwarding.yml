@@ -1,0 +1,43 @@
+id: a5cfaae1-ee03-40f3-af2a-25a23f2abebf_1.0.9
+type: security-rule
+attributes:
+  description: |
+    This rule monitors for a set of Linux utilities that can be used for tunneling and port forwarding. Attackers can
+    leverage tunneling and port forwarding techniques to bypass network defenses, establish hidden communication channels,
+    and gain unauthorized access to internal resources, facilitating data exfiltration, lateral movement, and remote
+    control.
+  rule_id: a5cfaae1-ee03-40f3-af2a-25a23f2abebf
+  license: Elastic License v2
+  name: Potential Linux Tunneling and/or Port Forwarding
+  os_list:
+    - linux
+  reference:
+    - "https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-useful-commands/"
+    - "https://www.trendmicro.com/tr_tr/research/26/c/dissecting-a-warlock-attack.html"
+    - "https://github.com/P001water/yuze"
+    - "https://flare.io/learn/resources/blog/teampcp-cloud-native-ransomware"
+    - "https://blog.bitsadmin.com/living-off-the-foreign-land-windows-as-offensive-platform"
+    - "https://github.com/erebe/wstunnel"
+  version: "1.0.9"
+  query: "process where event.type == \"start\" and event.action == \"exec\" and (\n  (\n    // Tunneling and/or Port Forwarding via process command line\n    (\n      process.command_line regex \"\"\".*[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}:[0-9]{1,5}:[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}:[0-9]{1,5}.*\"\"\"\n    ) or\n    // gost\n    (\n      process.name == \"gost\" and process.args like~ (\"-L*\", \"-C*\", \"-R*\")\n    ) or\n    // ngrok\n    (\n      process.name == \"ngrok\" and process.args in (\"http\", \"https\", \"tcp\", \"tls\") and\n      not (process.executable like \"/scratch/project/*/tools/ngrok/ngrok\" and process.command_line like \"*127.0.0.1*\")\n    ) or\n    // earthworm\n    (\n      process.args == \"-s\" and process.args == \"-d\" and process.args == \"rssocks\"\n    ) or\n    // chisel\n    (\n      process.name like~ \"chisel*\" and process.args in (\"client\", \"server\")\n    ) or\n    // vscode\n    (\n      process.name == \"code\" and process.args == \"tunnel\" and\n      not (\n        process.args == \"kill\" or\n        (process.executable like \"/scratch/user/*/.vscode/code\" and process.args == \"-cli-data-dir\")\n      )\n    ) or\n    // QEMU\n    (\n      process.name like (\"qemu-system-*\", \".qemu-system-*\") and\n      process.args == \"-netdev\" and process.args like \"*socket*\" and (\n        (\n          process.args == \"-nographic\" and process.command_line like~ \"*connect=*\" and process.command_line like~ \"*restrict=off*\"\n        ) or\n        (\n          process.command_line like~ \"*hostfwd=*\" and\n          /* Common uses of hostfwd */\n          not process.command_line like \"*hostfwd=tcp::*-:22*\"\n        )\n      )\n    ) or\n    // yuze\n    (\n      (\n        process.args == \"proxy\" and process.args == \"-l\" and process.args_count >= 4\n      ) or\n      (\n        process.args == \"fwd\" and process.args == \"-l\" and process.args == \"-f\" and process.args_count >= 6 and\n        process.command_line regex \"\"\".*[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}:[0-9]{1,5}.*\"\"\"\n      ) or\n      (\n        process.args == \"reverse\" and (\n          (\n            process.args == \"-s\" and process.args == \"-l\" and process.args_count >= 6\n          ) or\n          (\n            process.args == \"-c\" and process.args_count >= 4 and\n            process.command_line regex \"\"\".*[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}:[0-9]{1,5}.*\"\"\"\n          )\n        )\n      )\n    ) or\n    // Common tunneling tools \n    (\n      process.name in~ (\n        \"iodine\", \"iodined\", \"dnscat\", \"hans\", \"hans-ubuntu\", \"ptunnel-ng\", \"ssf\", \"3proxy\", \"wstunnel\", \"pivotnacci\",\n        \"frps\", \"proxychains\", \"yuze\"\n      )\n    )\n  )\n) and\nnot (\n  (\n    process.name in (\"bash\", \"dash\", \"sh\", \"tcsh\", \"csh\", \"zsh\", \"ksh\", \"fish\", \"mksh\") and\n    process.args like \"ssh*\"\n  ) or\n  process.parent.args == \"/usr/bin/crun\" or\n  process.executable in (\n    \"/usr/bin/podman\", \"/usr/bin/crontab\", \"/usr/bin/rg\", \"/usr/bin/ssh\", \"/usr/bin/autossh\", \"/usr/local/bin/rtk\", \"/usr/lib/autossh/autossh\"\n  ) or\n  process.parent.executable in (\n    \"/usr/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex\",\n    \"/usr/share/antigravity/resources/app/extensions/antigravity/bin/language_server_linux_x64\"\n  ) or\n  process.parent.executable like \"/home/linuxbrew/.linuxbrew/Caskroom/codex/*/codex-x86_64-unknown-linux-musl\" or\n  process.executable like (\"/tmp/.mount_cursor*/ripgrep/bin/rg\", \"/home/*/.local/bin/code\", \"/home/*/.local/bin/rtk\", \"/home/*/.cursor-server/bin/linux-x64/*\") or\n  process.parent.command_line == \"runc init\" or\n  process.args == \"/usr/bin/autossh\" or\n  (\n    process.parent.executable == \"/opt/rancher-desktop/resources/resources/linux/lima/bin/limactl\" and\n    process.executable == \"/usr/bin/qemu-system-x86_64\"\n  ) or\n  (\n    process.executable == \"/usr/bin/gssh-agent\" and\n    process.command_line like \"/usr/bin/python3 /usr/bin/gssh-agent /usr/bin/ssh -N -o BatchMode=yes *\" and\n    process.args in (\"-L\", \"-R\") and\n    process.args like \"127.0.0.1:*:127.0.0.1:*\"\n  ) or\n  process.parent.executable like \"/home/linuxbrew/.linuxbrew/Caskroom/codex/*/bin/codex\" or\n  process.parent.command_line like \"*/home/*/.claude/*shell-snapshots/snapshot*\" or\n  (process.executable == \"/usr/bin/qemu-system-x86_64\" and process.parent.command_line == \"bash /run/entry.sh\")\n)\n"
+  min_endpoint_version: "7.15.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1572
+          name: Protocol Tunneling
+          reference: "https://attack.mitre.org/techniques/T1572/"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "7.15.0"

@@ -1,0 +1,34 @@
+id: abbb1618-6eae-459e-949d-bf628aa0abd4_1.0.7
+type: security-rule
+attributes:
+  description: |
+    Identifies attempts to allocate or execute shellcode from unbacked memory and where the protection provenance of the
+    unbacked region is coming from an unusual signed Microsoft module.
+  rule_id: abbb1618-6eae-459e-949d-bf628aa0abd4
+  license: Elastic License v2
+  name: Shellcode from Unusual Microsoft Signed Module
+  os_list:
+    - windows
+  version: "1.0.7"
+  query: "api where\n    process.executable != null and process.parent.executable != null and\n    process.Ext.api.behaviors in (\"shellcode\", \"allocate_shellcode\", \"execute_shellcode\") and\n    process.Ext.api.name in (\"VirtualAlloc\", \"VirtualProtect\", \"WriteProcessMemory\", \"VirtualProtectEx\", \"VirtualAllocEx\",\n                             \"MapViewOfFile\", \"MapViewOfFile2\", \"SetThreadContext\", \"SuspendThread\", \"ReadProcessMemory\", \"connect\") and\n    process.thread.Ext.call_stack_final_user_module.name == \"Unbacked\" and\n    process.thread.Ext.call_stack_final_user_module.protection_provenance_path != null and\n    _arraysearch(process.thread.Ext.call_stack_final_user_module.code_signature, $entry,\n                 $entry.trusted == true and $entry.subject_name in (\"Microsoft Corporation\", \"Microsoft Windows\")) and\n    process.thread.Ext.call_stack_summary :\n                        (\"ntdll.dll|Unbacked\",\n                         \"ntdll.dll|kernelbase.dll|Unbacked\",\n                         \"ntdll.dll|kernelbase.dll|kernel32.dll|Unbacked\",\n                         \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|Unbacked\",\n                         \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked\",\n                         \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|Unbacked|kernel32.dll|ntdll.dll\",\n                         \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked|kernel32.dll|ntdll.dll\",\n                         \"ntdll.dll|mswsock.dll|ws2_32.dll|Unbacked\",\n                         \"wow64cpu.dll|wow64.dll|ntdll.dll|mswsock.dll|ws2_32.dll|Unbacked|kernel32.dll|ntdll.dll\") and\n    process.thread.Ext.call_stack_final_user_module.protection_provenance_path like \"c:\\\\windows\\\\system32\\\\*\" and\n\n    not (process.executable : \"C:\\\\Program Files\\\\Dell\\\\DTP\\\\InstrumentationSubAgent\\\\Dell.TechHub.Instrumentation.SubAgent.exe\" and \n         process.parent.executable : \"C:\\\\Program Files\\\\Dell\\\\TechHub\\\\Dell.TechHub.exe\" and \n         process.code_signature.subject_name == \"Dell Technologies Inc.\" and process.code_signature.trusted == true) and\n\n    not (process.parent.executable : \"C:\\\\Program Files (x86)\\\\ScreenConnect Client*\\\\ScreenConnect.ClientService.exe\" and\n        process.executable : \"C:\\\\Program Files (x86)\\\\ScreenConnect Client (*)\\\\ScreenConnect.WindowsClient.exe\" and\n        process.code_signature.subject_name == \"ConnectWise, LLC\" and process.code_signature.trusted == true) and\n\n    not (process.name == \"powershell.exe\" and user.id == \"S-1-5-18\" and\n         process.parent.executable : \"C:\\\\Program Files (x86)\\\\Quest\\\\KACE\\\\KInventory.exe\") and\n\n    not process.thread.Ext.call_stack_final_user_module.protection_provenance : (\"cyvrtrap.dll\", \"bass.dll\") and\n\n    not (process.executable : \"C:\\\\Windows\\\\System32\\\\PrintIsolationHost.exe\" and\n         process.thread.Ext.call_stack_final_user_module.protection_provenance_path like \"c:\\\\windows\\\\system32\\\\msvcr100.dll\") and\n\n    not (process.executable : \"C:\\\\Windows\\\\System32\\\\inetsrv\\\\w3wp.exe\" and process.parent.executable : \"C:\\\\Windows\\\\System32\\\\svchost.exe\" and \n         _arraysearch(process.thread.Ext.call_stack, $entry, \n                      $entry.callsite_trailing_bytes : (\"41c644240c01*488b558849895424104883c4785b5e5f415c415d415e415f5dc3*\", \n                                                        \"41c6470c01833*488bc6488b5590498957104883c4685b5e5f415c415*\",\n                                                        \"*85f60f95c00fb6c00fb6c041c6470c01488b558849895710488d65c85b5e5f415c415d415e*\"))) and\n\n    not (process.parent.executable : \"C:\\\\Program Files\\\\ATERA Networks\\\\AteraAgent\\\\Agent\\\\AteraAgent.exe\" and\n         process.executable : \"C:\\\\Program Files\\\\ATERA Networks\\\\AteraAgent\\\\Agent\\\\packages\\\\AgentPackageMonitoring\\\\AgentPackageMonitoring.exe\")\n"
+  min_endpoint_version: "8.14.2"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.14.2"

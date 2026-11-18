@@ -1,0 +1,60 @@
+id: "9dfe40e2-3f4c-47d6-af48-f3459b53d49e_1.0.5"
+type: security-rule
+attributes:
+  description: |
+    Detects a ClickFix-style attack where a base64 encoded payload is decoded and piped to a shell interpreter for
+    execution, resulting in a curl download. This technique is commonly used in social engineering attacks where victims are
+    tricked into copying and pasting malicious commands from fake error dialogs or verification prompts.
+  rule_id: "9dfe40e2-3f4c-47d6-af48-f3459b53d49e"
+  license: Elastic License v2
+  name: Potential ClickFix Attack via Base64 Decoded Payload
+  os_list:
+    - macos
+  reference:
+    - "https://blog.sekoia.io/clickfix-tactic-the-phantom-meet/"
+  version: "1.0.5"
+  query: "sequence by process.Ext.effective_parent.entity_id with maxspan=10s\n[process where event.type == \"start\" and event.action == \"exec\" and process.name == \"base64\" and process.args in (\"-d\", \"-D\", \"--decode\") and\n  process.Ext.effective_parent.name like~ (\"Terminal\", \"iTerm2\", \"iTerm\", \"ghostty\",\n                                           \"alacritty\", \"wezterm-gui\", \"Hyper\", \"kitty\",\n                                           \"WarpTerminal\", \"stable\", \"rio\", \"tabby\") and \n not process.parent.command_line like (\"*/.claude/shell-snapshots/snapshot-bash*\", \"*__CURSOR_SANDBOX_ENV_RESTORE*\")]\n[process where event.type == \"start\" and event.action == \"exec\" and process.name in (\"bash\", \"sh\", \"zsh\", \"Terminal\") and process.args_count <= 1]\n[process where event.type == \"start\" and event.action == \"exec\" and process.name in (\"curl\", \"nscurl\") and process.parent.name in (\"bash\", \"sh\", \"zsh\", \"Terminal\") and\n  process.parent.command_line in (\"bash\", \"sh\", \"zsh\", \"Terminal\", \"/sbin/launchd\") and\n  not process.command_line like \"/usr/bin/curl --version\"]\n"
+  min_endpoint_version: "8.16.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.entity_id
+      state: 2
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1566
+          name: Phishing
+          reference: "https://attack.mitre.org/techniques/T1566/"
+          subtechnique:
+            - id: T1566.002
+              name: Spearphishing Link
+              reference: "https://attack.mitre.org/techniques/T1566/002/"
+      tactic:
+        id: TA0001
+        name: Initial Access
+        reference: "https://attack.mitre.org/tactics/TA0001/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1204
+          name: User Execution
+          reference: "https://attack.mitre.org/techniques/T1204/"
+          subtechnique:
+            - id: T1204.001
+              name: Malicious Link
+              reference: "https://attack.mitre.org/techniques/T1204/001/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+  internal:
+    min_endpoint_version: "8.16.0"

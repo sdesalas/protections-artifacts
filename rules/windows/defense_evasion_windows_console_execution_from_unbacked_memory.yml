@@ -1,0 +1,53 @@
+id: "7b186a20-22eb-4ea2-81ec-6d15dd6ee341_1.0.27"
+type: security-rule
+attributes:
+  description: |
+    Identifies the creation of a Windows console host process where the creating thread's stack contains frames pointing
+    outside any known executable image. This may be indicative of the use of a built-in Windows shell from an injected
+    process.
+  rule_id: "7b186a20-22eb-4ea2-81ec-6d15dd6ee341"
+  license: Elastic License v2
+  name: Windows Console Execution from Unbacked Memory
+  os_list:
+    - windows
+  reference:
+    - "https://www.elastic.co/security-labs/upping-the-ante-detecting-in-memory-threats-with-kernel-call-stacks"
+  version: "1.0.27"
+  query: "sequence with maxspan=5m\n[process where event.action == \"start\" and process.parent.executable != null and\n process.parent.thread.Ext.call_stack_contains_unbacked == true and\n (process.executable : \"?:\\\\Windows\\\\Sys*\\\\conhost.exe\" and process.args : \"0xffffffff\") and\n  process.parent.thread.Ext.call_stack_summary :\n               (\"ntdll.dll|kernelbase.dll|Unbacked\",\n                \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked\",\n                \"ntdll.dll|wow64.dll|wow64cpu.dll|wow64.dll|ntdll.dll|kernelbase.dll|Unbacked|kernel32.dll|ntdll.dll\") and\n  not (user.id == \"S-1-5-18\" and\n       process.parent.executable :\n                     (\"?:\\\\ProgramData\\\\*.exe\",\n                      \"?:\\\\Program Files\\\\*.exe\",\n                      \"?:\\\\Program Files (x86)\\\\*.exe\",\n                      \"?:\\\\Windows\\\\LTSvc\\\\LTSVC.exe\",\n                      \"?:\\\\Windows\\\\System32\\\\msiexec.exe\",\n                      \"C:\\\\Windows\\\\_ScriptingFramework\\\\Modul\\\\Engine.exe\",\n                      \"C:\\\\Windows\\\\_ScriptingFramework\\\\Modul\\\\ScriptingFrameworkEngine.exe\",\n                      \"C:\\\\Windows\\\\SysWOW64\\\\SmartDeploy\\\\ClientService.exe\",\n                      \"I:\\\\RSA\\\\Microsoft Azure Recovery Services Agent\\\\bin\\\\cbengine.exe\",\n                      \"C:\\\\Drivers\\\\Nord\\\\NordSec ThreatProtection\\\\nordsec-threatprotection-service.exe\")) and\n  not (process.parent.executable : \"?:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\*\\\\powershell.exe\" and user.id : \"S-1-5-18\" and\n       process.code_signature.trusted == true) and\n  not (process.code_signature.subject_name : \"ProVation Medical\" and process.code_signature.trusted == true) and\n  not (process.parent.code_signature.subject_name in (\"UiPath, Inc.\", \"QSR International Pty Ltd\") and process.parent.code_signature.trusted == true) and\n  not (process.parent.code_signature.subject_name : \"Microsoft Corporation\" and\n       process.parent.code_signature.trusted == true and\n       process.parent.executable : (\"?:\\\\*\\\\Microsoft.SQLServer.*.Express.*.exe\",\n                                     \"?:\\\\*\\\\SQL*-SSEI-Expr.exe\")) and\n  not process.parent.executable :\n                    (\"?:\\\\Packages\\\\Plugins\\\\Microsoft.GuestConfiguration.ConfigurationforWindows\\\\*\\\\gc_service.exe\",\n                     \"?:\\\\Windows\\\\System32\\\\wsmprovhost.exe\",\n                     \"?:\\\\Program Files (x86)\\\\Wondershare\\\\*.exe\",\n                     \"?:\\\\Windows\\\\System32\\\\drivers\\\\*.exe\",\n                     \"?:\\\\Program Files*\\\\Cloudflare\\\\*.exe\",\n                     \"?:\\\\Program Files (x86)\\\\Universal\\\\Universal.Server.exe\",\n                     \"?:\\\\Program Files*\\\\Listary\\\\Listary.exe\",\n                     \"?:\\\\Program Files*\\\\ExpressConnect\\\\ECDBWMService.exe\",\n                     \"?:\\\\ProVation\\\\Utilities\\\\ProVation.DataExport\\\\ProVation.DataExport.exe\",\n                     \"?:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\*\\\\powershell_ise.exe\",\n                     \"?:\\\\WINDOWS\\\\_ScriptingFramework\\\\Modul\\\\Engine.exe\",\n                     \"?:\\\\Program Files\\\\Citrix\\\\Telemetry Service\\\\TelemetryService.exe\",\n                     \"?:\\\\ProVation\\\\Utilities\\\\Database Utilities\\\\ProVation.DataExport.exe\",\n                     \"?:\\\\Program Files*\\\\UiPath\\\\Studio\\\\UiPath.Studio.Project.exe\",\n                     \"?:\\\\Program Files*\\\\Microsoft System Center\\\\Operations Manager\\\\Server\\\\MonitoringHost.exe\",\n                     \"?:\\\\Program Files (x86)\\\\Canfield Scientific Inc\\\\PortalService\\\\CanfieldRegister.exe\",\n                     \"?:\\\\Program Files*\\\\Microsoft System Center\\\\Operations Manager\\\\Server\\\\MonitoringHost.exe\",\n                     \"?:\\\\Drivers\\\\MITS_FATClient_SupportTool\\\\MITS_FATClient_SupportTool_admin.exe\",\n                     \"?:\\\\Program Files*\\\\Microsoft Visual Studio\\\\*\\\\Community\\\\Common?\\\\IDE\\\\devenv.exe\",\n                     \"?:\\\\Program Files\\\\ObserveIT\\\\WebsiteCat\\\\WebsiteCat.Manager.exe\",\n                     \"?:\\\\Program Files\\\\Microsoft Azure Active Directory Connect\\\\AzureADConnect.exe\",\n                     \"?:\\\\Program Files (x86)\\\\vMix\\\\vMix64.exe\",\n                     \"?:\\\\Work\\\\HP DIAG TOOL\\\\ImageDiags.exe\",\n                     \"C:\\\\Work\\\\ImageDiags.exe\",\n                     \"?:\\\\Program Files (x86)\\\\Driver Support One\\\\DSOneWeb.exe\",\n                     \"?:\\\\Program Files (x86)\\\\Team Shinkansen\\\\Hakchi2 CE\\\\hakchi.exe\",\n                     \"?:\\\\Program Files (x86)\\\\HP DIAG TOOL\\\\ImageDiags.exe\",\n                     \"?:\\\\ProVation\\\\Utilities\\\\Database Utilities\\\\ProVation.DataExport19c\\\\ProVation.DataExport.exe\",\n                     \"?:\\\\Program Files\\\\WindowsApps\\\\*\\\\DCv2\\\\DCv2.exe\",\n                     \"?:\\\\Users\\\\*\\\\Desktop\\\\HP DIAG TOOL\\\\ImageDiags.exe\",\n                     \"?:\\\\ProVation\\\\Utilities\\\\Database Utilities\\\\ProVation.DataExport*\\\\ProVation.DataExport.exe\",\n                     \"\\\\Device\\\\Mup\\\\*\\\\Release\\\\CorrespondanceDownload.vshost.exe\",\n                     \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Programs\\\\UiPath\\\\Studio\\\\UiPath.Studio.Project.exe\",\n                     \"D:\\\\*\\\\Exporter\\\\bin\\\\Debug\\\\Exporter.vshost.exe\",\n                     \"C:\\\\Windows\\\\SysWOW64\\\\SmartDeploy\\\\ClientService.exe\",\n                     \"C:\\\\Program Files\\\\QSR\\\\NVivo ??\\\\NVivo.exe\",\n                     \"C:\\\\Program Files\\\\McCormick Systems\\\\McCormick Estimating\\\\MaintenanceUtility.exe\",\n                     \"D:\\\\PROGRAMS\\\\UiPath\\\\Studio\\\\UiPath.Studio.Project.exe\",\n                     \"C:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\GWP\\\\MSOffice-AddIns\\\\Deploy-MSOfficeAddIns.exe\",\n                     \"C:\\\\Program Files\\\\Devolutions\\\\Remote Desktop Manager\\\\RemoteDesktopManager.exe\",\n                     \"C:\\\\Program Files\\\\QSR\\\\NVivo 14\\\\NVivo.exe\",\n                     \"C:\\\\Program Files (x86)\\\\Genetec SV Control Panel\\\\Control Panel\\\\SVControlPanel.exe\",\n                     \"D:\\\\PROGRAMS\\\\UiPath\\\\Studio\\\\UiPath.Studio.Project.exe\",\n                     \"C:\\\\Program Files (x86)\\\\Chocolatey GUI\\\\ChocolateyGui.exe\",\n                     \"C:\\\\Program Files\\\\Royal TS V7\\\\RoyalTS.exe\",\n                     \"C:\\\\Program Files\\\\QSR\\\\NVivo ??\\\\NVivo.exe\",\n                     \"C:\\\\Program Files\\\\Password Safe and Repository*\\\\PSRServer.exe\",\n                     \"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.GetHelp_*\\\\GetHelp.exe\", \n                     \"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.DesktopAppInstaller_*\\\\DotNet\\\\ConfigurationRemotingServer.exe\",\n                     \"C:\\\\Program Files (x86)\\\\CentraStage\\\\CagService.exe\", \n                     \"D:\\\\Microsoft Azure\\\\Microsoft Azure Recovery Services Agent\\\\bin\\\\cbengine.exe\", \n                     \"C:\\\\Program Files (x86)\\\\BMW\\\\ISPI\\\\ISVM\\\\IMIBNext\\\\Ediabas\\\\bin\\\\EbasServer.exe\", \n                     \"C:\\\\Program Files\\\\ASUS\\\\ASUS VeriView\\\\ASUSEventClient.exe\", \n                     \"C:\\\\Program Files (x86)\\\\Kovai Ltd\\\\BizTalk360\\\\Service\\\\BHMCollect.exe\", \n                     \"C:\\\\Program Files\\\\Common Files\\\\eClinicalWorks\\\\plugin\\\\WinProjectE.exe\", \n                     \"C:\\\\Program Files (x86)\\\\BizTalkHealthMonitor\\\\BHMCollect.exe\", \n                     \"?:\\\\Program Files (x86)\\\\Welch Allyn\\\\Connex\\\\Server\\\\*\\\\DataBaseInstaller\\\\DatabaseInstaller.exe\") and\n  not _arraysearch(process.parent.thread.Ext.call_stack, $entry,\n                   $entry.callsite_trailing_bytes :\n                              (\"c6460c01833d*e85ff0f95c00fb6c00fb6c0c6460c01488b559048895610488d65c85b5e5f415c415d415e415f\",\n                               \"*48895610488d65c85b5e5f415c415d415e415f5dc30000001910090010c20c300b60*\",\n                               \"*95c00fb6c0488b5588488956104883c4785b5e5f415c41*\",\n                               \"c6460c01833d9c8c755e007406ff15a495755e85c00f95c00fb6c00fb6c0c6460c01488b559048895610488d65c85b5e5f415c415d415e415f5dc31910090010\"))\n\n  ] by process.parent.entity_id\n[network where true] by process.entity_id\n"
+  min_endpoint_version: "8.10.0"
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 0
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  optional_actions:
+    - action: rollback
+      field: process.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.003
+              name: Windows Command Shell
+              reference: "https://attack.mitre.org/techniques/T1059/003/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1055
+          name: Process Injection
+          reference: "https://attack.mitre.org/techniques/T1055/"
+      tactic:
+        id: TA0005
+        name: Defense Evasion
+        reference: "https://attack.mitre.org/tactics/TA0005/"
+  internal:
+    min_endpoint_version: "8.10.0"

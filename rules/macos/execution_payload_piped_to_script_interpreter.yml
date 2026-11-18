@@ -1,0 +1,46 @@
+id: e413073c-4d6b-40d4-9ef1-b4de22d137d3_1.0.14
+type: security-rule
+attributes:
+  description: |
+    Detects when a script interpreter executes via a shell (sh, bash, zsh) or osascript with only a single argument, being
+    the process name and followed immediately by a network connection. This activity occurs when script code gets piped to
+    the interpreter via a shell and that code is intended to reach out to an external destination like a C2 server.
+  rule_id: e413073c-4d6b-40d4-9ef1-b4de22d137d3
+  license: Elastic License v2
+  name: Payload Piped to Script Interpreter
+  os_list:
+    - macos
+  reference:
+    - "https://github.com/nnsee/fileless-elf-exec"
+  version: "1.0.14"
+  query: "sequence by process.parent.entity_id with maxspan=10s\n[process where event.type == \"start\" and event.action == \"exec\" and\n  process.name like~ (\"zsh\", \"sh\", \"bash\", \"python*\", \"terminal\") and\n  process.args == \"-c\" and\n  (\n    process.command_line : (\"*curl*|*\", \"*nscurl*|*\", \"*wget*|*\", \"*osascript*|*\",\n                            \"*/dev/tcp/*\", \"*base64*|*\", \"*openssl*|*\", \"*nc *|*\") or\n    process.command_line : (\"*curl*>*\", \"*wget*>*\") or\n    process.command_line : \"*http*|*\"\n  )]\n[process where event.type == \"start\" and event.action == \"exec\" and \n  process.name like~ (\"python*\", \"perl*\", \"ruby*\", \"osascript\") and\n  process.parent.name in (\"sh\", \"bash\", \"zsh\", \"osascript\") and \n  process.args like~ (\"python*\", \"perl*\", \"ruby*\", \"osascript\") and \n  process.args_count == 1]\n"
+  min_endpoint_version: "8.3.0"
+  optional_actions: []
+  actions:
+    - action: kill_process
+      field: process.entity_id
+      state: 1
+    - action: kill_process
+      field: process.parent.entity_id
+      state: 0
+  threat:
+    - framework: "MITRE ATT&CK"
+      technique:
+        - id: T1059
+          name: Command and Scripting Interpreter
+          reference: "https://attack.mitre.org/techniques/T1059/"
+          subtechnique:
+            - id: T1059.006
+              name: Python
+              reference: "https://attack.mitre.org/techniques/T1059/006/"
+      tactic:
+        id: TA0002
+        name: Execution
+        reference: "https://attack.mitre.org/tactics/TA0002/"
+    - framework: "MITRE ATT&CK"
+      tactic:
+        id: TA0011
+        name: Command and Control
+        reference: "https://attack.mitre.org/tactics/TA0011/"
+  internal:
+    min_endpoint_version: "8.3.0"
