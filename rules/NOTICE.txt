@@ -1,4 +1,0 @@
-Elastic Defend Behavior Protection Rules
-Copyright Elasticsearch B.V.
-
-Licensed under the Elastic License 2.0. See LICENSE.txt.

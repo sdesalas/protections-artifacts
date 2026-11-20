@@ -24,12 +24,12 @@ Below you will find the artifacts we have opened in this repository:
 library of prebuilt rules.
 
 ```
+manifest.yml                       package manifest (name, version, kibana.version condition)
+changelog.yml                      one entry per release, linked to its pull request or commit
+endpoint-logo-color-32px.svg       the package icon (the manifest's `icons`)
+LICENSE.txt                        Elastic License 2.0 (`source.license: Elastic-2.0`)
 rules/
-  manifest.yml                     package manifest (name, version, kibana.version condition)
-  changelog.yml                    one entry per release, linked to its pull request or commit
-  NOTICE.txt                       notice shipped with the package
   README.md                        the package description
-  endpoint-logo-color-32px.svg     the package icon (the manifest's `icons`)
   windows/<rule file name>.yml
   linux/<rule file name>.yml
   macos/<rule file name>.yml
@@ -38,7 +38,8 @@ scripts/
   convert_rules.py                 rebuilds rules/ from src/behavior/rules/
 ```
 
-- Every folder under `rules/` holds rule files, and only those. The folder is the one the rule has in `src/behavior/rules/`. The package files stay directly in `rules/`.
+- The package files are at the root, so the manifest, changelog and license cover everything in the library.
+- Every folder under `rules/` holds rule files, and only those. The folder is the one the rule has in `src/behavior/rules/`.
 - Each file holds one rule as `{ id, type: "security-rule", attributes }`. `id` is `<rule_id>_<version>`.
   `attributes` has the fields of the TOML file: the `[rule]` table with `id` renamed to `rule_id`, plus `actions`,
   `threat` and `internal`.
